@@ -18,6 +18,7 @@ public class GlobalExceptionHandler {
             case "QUANTITY_OUT_OF_RANGE", "EMERGENCY_INTERCEPT" -> HttpStatus.UNPROCESSABLE_ENTITY;
             case "RATE_LIMITED" -> HttpStatus.TOO_MANY_REQUESTS;
             case "POW_INVALID", "POW_REQUIRED" -> HttpStatus.FORBIDDEN;
+            case "FORBIDDEN" -> HttpStatus.FORBIDDEN;
             case "UNAUTHORIZED" -> HttpStatus.UNAUTHORIZED;
             default -> HttpStatus.BAD_REQUEST;
         };

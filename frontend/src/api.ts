@@ -34,12 +34,13 @@ export async function getPowHeader(): Promise<string> {
   return `${challenge}.${nonce}`
 }
 
-async function apiFetch(path: string, opts: RequestInit & { deviceSecret?: string; pow?: boolean } = {}) {
+async function apiFetch(path: string, opts: RequestInit & { deviceSecret?: string; stewardToken?: string; pow?: boolean } = {}) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(opts.headers as Record<string, string> || {}),
   }
   if (opts.deviceSecret) headers['X-Device'] = opts.deviceSecret
+  if (opts.stewardToken) headers['Authorization'] = `Bearer ${opts.stewardToken}`
   if (opts.pow) headers['X-PoW'] = await getPowHeader()
 
   const res = await fetch(`${API}${path}`, { ...opts, headers })
@@ -96,6 +97,91 @@ export async function flagCovered(deviceSecret: string, needId: string) {
 
 export async function forgetDevice(deviceSecret: string) {
   return apiFetch('/devices/me', { method: 'DELETE', deviceSecret })
+}
+
+export async function fetchShifts() {
+  const json = await apiFetch('/shifts')
+  return json.data
+}
+
+export async function signupShift(deviceSecret: string, shiftId: string) {
+  return apiFetch(`/shifts/${shiftId}/signup`, { method: 'POST', deviceSecret })
+}
+
+export async function fetchAnnouncements() {
+  const json = await apiFetch('/announcements')
+  return json.data
+}
+
+export async function fetchAidPoints() {
+  const json = await apiFetch('/aid-points')
+  return json.data
+}
+
+export async function stewardLogin(deviceSecret: string, passphrase: string, totpCode: string) {
+  const json = await apiFetch('/admin/login', {
+    method: 'POST',
+    deviceSecret,
+    body: JSON.stringify({ passphrase, totpCode }),
+  })
+  return json.data as { token: string; tier: string }
+}
+
+export async function fetchModerationQueue(stewardToken: string) {
+  const json = await apiFetch('/moderation/queue', { stewardToken })
+  return json.data
+}
+
+export async function approveNeed(stewardToken: string, needId: string) {
+  return apiFetch(`/moderation/${needId}/approve`, { method: 'POST', stewardToken })
+}
+
+export async function removeNeed(stewardToken: string, needId: string) {
+  return apiFetch(`/moderation/${needId}/remove`, { method: 'POST', stewardToken })
+}
+
+export async function createAnnouncement(stewardToken: string, body: object) {
+  return apiFetch('/announcements', { method: 'POST', stewardToken, body: JSON.stringify(body) })
+}
+
+export interface Shift {
+  id: string
+  zoneCode: string
+  role: string
+  startsAt: string
+  endsAt: string
+  minVolunteers: number
+  maxVolunteers: number
+  signedUp: number
+  notice?: string
+}
+
+export interface Announcement {
+  id: string
+  bodyEn: string
+  bodyHi?: string
+  source: string
+  urgent: boolean
+  published: boolean
+  createdAt: string
+}
+
+export interface AidPoint {
+  id: number
+  zoneCode: string
+  name: string
+  status: string
+  hoursNote?: string
+  cannotHandle?: string
+}
+
+export interface QueueItem {
+  id: string
+  targetType: string
+  zoneCode: string
+  category: string
+  createdAt: string
+  notePreview?: string
 }
 
 export interface Need {

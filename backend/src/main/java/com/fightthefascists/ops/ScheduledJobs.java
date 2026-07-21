@@ -34,4 +34,11 @@ public class ScheduledJobs {
                 .onErrorComplete()
                 .subscribe();
     }
+
+    @Scheduled(fixedRate = 900_000)
+    public void staleAidStatus() {
+        // F5.E2
+        db.sql("UPDATE aid_points SET status = 'UNKNOWN' WHERE status_at < now() - interval '4 hours' AND status != 'UNKNOWN'")
+                .fetch().rowsUpdated().onErrorComplete().subscribe();
+    }
 }

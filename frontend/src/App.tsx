@@ -6,6 +6,10 @@ import BoardPage from './pages/BoardPage'
 import PostPage from './pages/PostPage'
 import ClaimPage from './pages/ClaimPage'
 import MyPage from './pages/MyPage'
+import ShiftsPage from './pages/ShiftsPage'
+import AnnouncementsPage from './pages/AnnouncementsPage'
+import AidPage from './pages/AidPage'
+import StewardPage from './pages/StewardPage'
 import { useAppStore } from './store'
 
 const qc = new QueryClient()
@@ -21,6 +25,10 @@ function AppInner() {
           <Route index element={<BoardPage />} />
           <Route path="post" element={<PostPage />} />
           <Route path="claim/:needId" element={<ClaimPage />} />
+          <Route path="shifts" element={<ShiftsPage />} />
+          <Route path="announce" element={<AnnouncementsPage />} />
+          <Route path="aid" element={<AidPage />} />
+          <Route path="steward" element={<StewardPage />} />
           <Route path="my" element={<MyPage />} />
         </Route>
       </Routes>

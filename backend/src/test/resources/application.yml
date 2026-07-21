@@ -13,3 +13,7 @@ ftf:
   encryption-key: test-encryption-key-32bytes!!
   pow-secret: test-pow-secret
   pow-difficulty: 8
+  jwt-secret: test-jwt-secret-for-unit-tests-only
+  admin:
+    passphrase: steward-dev-pass
+    totp-secret: JBSWY3DPEHPK3PXP

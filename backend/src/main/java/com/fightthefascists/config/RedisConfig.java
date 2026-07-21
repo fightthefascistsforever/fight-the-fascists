@@ -18,9 +18,14 @@ public class RedisConfig {
             @Value("${ftf.device-pepper}") String devicePepper,
             @Value("${ftf.encryption-key}") String encryptionKey,
             @Value("${ftf.pow-secret}") String powSecret,
-            @Value("${ftf.pow-difficulty:12}") int powDifficulty) {
-        return new FtfProperties(devicePepper, encryptionKey, powSecret, powDifficulty);
+            @Value("${ftf.pow-difficulty:12}") int powDifficulty,
+            @Value("${ftf.jwt-secret}") String jwtSecret,
+            @Value("${ftf.admin.passphrase}") String adminPassphrase,
+            @Value("${ftf.admin.totp-secret}") String adminTotpSecret) {
+        return new FtfProperties(devicePepper, encryptionKey, powSecret, powDifficulty,
+                jwtSecret, adminPassphrase, adminTotpSecret);
     }
 
-    public record FtfProperties(String devicePepper, String encryptionKey, String powSecret, int powDifficulty) {}
+    public record FtfProperties(String devicePepper, String encryptionKey, String powSecret, int powDifficulty,
+                                String jwtSecret, String adminPassphrase, String adminTotpSecret) {}
 }

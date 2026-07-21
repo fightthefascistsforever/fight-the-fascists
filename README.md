@@ -80,6 +80,13 @@ Base URL: `/api/v1`
 | GET | `/pow/challenge` | Get proof-of-work challenge |
 | GET | `/stream` | SSE event stream |
 | GET | `/lite` | Zero-JS HTML board |
+| GET | `/shifts` | Volunteer shift roster |
+| POST | `/shifts/{id}/signup` | Sign up for a shift |
+| GET | `/announcements` | Published announcements |
+| POST | `/announcements` | Post announcement (steward+) |
+| GET | `/aid-points` | First aid directory |
+| POST | `/admin/login` | Steward/admin login (passphrase + TOTP) |
+| GET | `/moderation/queue` | Review queue (steward+) |
 
 ## Project structure
 

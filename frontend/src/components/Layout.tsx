@@ -2,10 +2,28 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
 
+const primaryNav = [
+  { to: '/', key: 'board' as const },
+  { to: '/post', key: 'postNeed' as const },
+  { to: '/shifts', key: 'shifts' as const },
+]
+
+const secondaryNav = [
+  { to: '/announce', key: 'announcements' as const },
+  { to: '/aid', key: 'aid' as const },
+  { to: '/my', key: 'myClaims' as const },
+  { to: '/steward', key: 'steward' as const },
+]
+
 export default function Layout() {
   const { locale, setLocale, handle } = useAppStore()
   const t = strings[locale]
   const loc = useLocation()
+
+  const navClass = (to: string) =>
+    `flex-1 text-center py-2 rounded-lg text-xs font-medium min-h-10 flex items-center justify-center ${
+      loc.pathname === to ? 'bg-teal-700 text-white' : 'bg-slate-800 text-slate-300'
+    }`
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -15,34 +33,25 @@ export default function Layout() {
             <h1 className="text-lg font-bold leading-tight">{t.appName}</h1>
             <p className="text-xs text-slate-400">{t.tagline}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
-              className="min-h-11 min-w-11 px-2 text-sm border border-slate-700 rounded-lg"
-              aria-label="Toggle language"
-            >
-              {locale === 'en' ? 'हि' : 'EN'}
-            </button>
-          </div>
+          <button
+            onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
+            className="min-h-11 min-w-11 px-2 text-sm border border-slate-700 rounded-lg"
+            aria-label="Toggle language"
+          >
+            {locale === 'en' ? 'हि' : 'EN'}
+          </button>
         </div>
         {handle && (
           <p className="mx-auto max-w-lg mt-1 text-xs text-teal-400 px-4">{handle}</p>
         )}
         <nav className="mx-auto max-w-lg flex gap-1 mt-2 px-2">
-          {[
-            { to: '/', label: t.board },
-            { to: '/post', label: t.postNeed },
-            { to: '/my', label: t.myClaims },
-          ].map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`flex-1 text-center py-2.5 rounded-lg text-sm font-medium min-h-11 flex items-center justify-center ${
-                loc.pathname === to ? 'bg-teal-700 text-white' : 'bg-slate-800 text-slate-300'
-              }`}
-            >
-              {label}
-            </Link>
+          {primaryNav.map(({ to, key }) => (
+            <Link key={to} to={to} className={navClass(to)}>{t[key]}</Link>
+          ))}
+        </nav>
+        <nav className="mx-auto max-w-lg flex gap-1 mt-1 px-2">
+          {secondaryNav.map(({ to, key }) => (
+            <Link key={to} to={to} className={navClass(to)}>{t[key]}</Link>
           ))}
         </nav>
       </header>

@@ -26,6 +26,10 @@ ftf:
   pow-secret: dev-pow-secret-change-me
   pow-difficulty: 12
   cors-allowed-origin: http://localhost:5173
+  jwt-secret: dev-jwt-secret-change-in-production-min-32-chars
+  admin:
+    passphrase: steward-dev-pass
+    totp-secret: JBSWY3DPEHPK3PXP
 
 management:
   endpoints:
