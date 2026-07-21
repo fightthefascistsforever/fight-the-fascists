@@ -36,6 +36,9 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       FTF_DEVICE_PEPPER: change-me-in-production-use-secret-manager
       FTF_ENCRYPTION_KEY: dev-encryption-key-32bytes-long!!
+      FTF_JWT_SECRET: change-me-jwt-secret-min-32-chars
+      FTF_ADMIN_PASSPHRASE: steward-dev-pass
+      FTF_ADMIN_TOTP_SECRET: JBSWY3DPEHPK3PXP
     depends_on:
       postgres:
         condition: service_healthy

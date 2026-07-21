@@ -1,0 +1,31 @@
+{
+  "needs" : [ {
+    "id" : "e24a6526-06f0-4596-82ca-e509988ad997",
+    "zoneId" : 1,
+    "zoneCode" : "A",
+    "category" : "WATER",
+    "quantity" : 40.00,
+    "unit" : "LITRES",
+    "pledged" : 10.00,
+    "delivered" : 0.00,
+    "urgency" : "URGENT",
+    "state" : "OPEN",
+    "neededBy" : "2026-07-22T01:04:51.076248Z",
+    "expiresAt" : "2026-07-22T01:04:51.076248Z",
+    "coveredFlags" : 0,
+    "version" : 1,
+    "note" : "[encrypted]"
+  } ],
+  "generatedAt" : "2026-07-21T23:19:01.782767255Z",
+  "stats" : {
+    "period" : "24h",
+    "needsPosted" : 0,
+    "needsFulfilled" : 0,
+    "litresDelivered" : 0,
+    "mealsDelivered" : 0,
+    "claimsDelivered" : 0,
+    "volunteerShifts" : 0,
+    "activeDevices" : 0,
+    "note" : "Aggregate counts only — no individual attribution"
+  }
+}

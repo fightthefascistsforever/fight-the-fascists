@@ -41,4 +41,16 @@ public class ScheduledJobs {
         db.sql("UPDATE aid_points SET status = 'UNKNOWN' WHERE status_at < now() - interval '4 hours' AND status != 'UNKNOWN'")
                 .fetch().rowsUpdated().onErrorComplete().subscribe();
     }
+
+    @Scheduled(fixedRate = 3_600_000)
+    public void bulkMissedStreak() {
+        // F8.E1 — downgrade phantom recurring pledges
+        db.sql("""
+                UPDATE bulk_pledges SET missed_streak = missed_streak + 1, active = false
+                WHERE active = true AND approved_by IS NOT NULL
+                  AND (last_confirmed_at IS NULL OR last_confirmed_at < now() - interval '2 days')
+                  AND missed_streak >= 1
+                """)
+                .fetch().rowsUpdated().onErrorComplete().subscribe();
+    }
 }

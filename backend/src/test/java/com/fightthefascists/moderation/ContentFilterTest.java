@@ -12,7 +12,8 @@ class ContentFilterTest {
     @BeforeEach
     void setUp() throws Exception {
         filter = new ContentFilter(new FtfProperties("pepper", "encryption-key-32-bytes-long!!", "pow", 12,
-                "jwt-secret", "pass", "JBSWY3DPEHPK3PXP"));
+                "jwt-secret", "pass", "JBSWY3DPEHPK3PXP",
+                800, 28.627, 77.216, "mirror", "http://localhost:5173"));
     }
 
     @Test

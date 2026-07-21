@@ -17,3 +17,8 @@ ftf:
   admin:
     passphrase: steward-dev-pass
     totp-secret: JBSWY3DPEHPK3PXP
+  headcount-estimate: 800
+  site-lat: 28.627
+  site-lon: 77.216
+  mirror-path: mirror
+  public-url: http://localhost:5173

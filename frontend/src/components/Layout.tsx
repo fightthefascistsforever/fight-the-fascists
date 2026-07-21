@@ -11,8 +11,8 @@ const primaryNav = [
 const secondaryNav = [
   { to: '/announce', key: 'announcements' as const },
   { to: '/aid', key: 'aid' as const },
-  { to: '/my', key: 'myClaims' as const },
-  { to: '/steward', key: 'steward' as const },
+  { to: '/give', key: 'give' as const },
+  { to: '/about', key: 'about' as const },
 ]
 
 export default function Layout() {
@@ -53,6 +53,7 @@ export default function Layout() {
           {secondaryNav.map(({ to, key }) => (
             <Link key={to} to={to} className={navClass(to)}>{t[key]}</Link>
           ))}
+          <Link to="/my" className={navClass('/my')}>{t.myClaims}</Link>
         </nav>
       </header>
       <main className="mx-auto max-w-lg px-4 py-4 pb-8">

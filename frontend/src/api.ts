@@ -144,6 +144,75 @@ export async function createAnnouncement(stewardToken: string, body: object) {
   return apiFetch('/announcements', { method: 'POST', stewardToken, body: JSON.stringify(body) })
 }
 
+export async function fetchBulkPledges() {
+  const json = await apiFetch('/bulk-pledges')
+  return json.data
+}
+
+export async function createBulkPledge(deviceSecret: string, body: object) {
+  return apiFetch('/bulk-pledges', { method: 'POST', deviceSecret, body: JSON.stringify(body) })
+}
+
+export async function fetchForecast() {
+  const json = await apiFetch('/forecast')
+  return json.data
+}
+
+export async function fetchHeatBand() {
+  const json = await apiFetch('/heat-band')
+  return json.data
+}
+
+export async function fetchStats() {
+  const json = await apiFetch('/stats')
+  return json.data
+}
+
+export interface BulkPledge {
+  id: string
+  orgName: string
+  category: string
+  quantity: number
+  unit: string
+  slotHour: number
+  slotLabel: string
+  approved: boolean
+  foodSafetyAck: boolean
+}
+
+export interface Forecast {
+  heatBand: string
+  headcountEstimate: number
+  timeWindow: string
+  shortfalls: Array<{
+    category: string
+    unit: string
+    projected: number
+    bulkSupply: number
+    openNeeds: number
+    shortfall: number
+  }>
+}
+
+export interface HeatBand {
+  band: string
+  temperatureC: number
+  messageEn: string
+  messageHi: string
+}
+
+export interface Stats {
+  period: string
+  needsPosted: number
+  needsFulfilled: number
+  litresDelivered: number
+  mealsDelivered: number
+  claimsDelivered: number
+  volunteerShifts: number
+  activeDevices: number
+  note: string
+}
+
 export interface Shift {
   id: string
   zoneCode: string

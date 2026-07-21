@@ -1,10 +1,10 @@
 import { useNeeds } from '../hooks'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import NeedCard from '../components/NeedCard'
+import HeatBanner from '../components/HeatBanner'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
-import { flagCovered, fetchAnnouncements } from '../api'
-import { useQueryClient } from '@tanstack/react-query'
+import { flagCovered, fetchAnnouncements, fetchForecast } from '../api'
 import { Link } from 'react-router-dom'
 
 export default function BoardPage() {
@@ -12,6 +12,7 @@ export default function BoardPage() {
   const t = strings[locale]
   const { data: needs, isLoading, isError } = useNeeds()
   const { data: announcements } = useQuery({ queryKey: ['announcements'], queryFn: fetchAnnouncements, refetchInterval: 60_000 })
+  const { data: forecast } = useQuery({ queryKey: ['forecast'], queryFn: fetchForecast, refetchInterval: 15 * 60_000 })
   const qc = useQueryClient()
 
   const handleFlag = async (id: string) => {
@@ -23,16 +24,9 @@ export default function BoardPage() {
   if (isLoading) return <p className="text-center py-8 text-slate-400">{t.loading}</p>
   if (isError) return <p className="text-center py-8 text-red-400">Failed to load board</p>
 
-  if (!needs?.length) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-lg text-slate-300">{t.noNeeds}</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
+      <HeatBanner />
       {!navigator.onLine && (
         <p className="text-amber-400 text-sm text-center bg-amber-950/50 rounded-lg py-2">{t.offline}</p>
       )}
@@ -42,9 +36,23 @@ export default function BoardPage() {
           {announcements[0].bodyEn.slice(0, 80)}{announcements[0].bodyEn.length > 80 ? '…' : ''}
         </Link>
       )}
-      {needs.map((need: import('../api').Need) => (
-        <NeedCard key={need.id} need={need} onFlag={deviceSecret ? handleFlag : undefined} />
-      ))}
+      {forecast?.shortfalls?.length > 0 && (
+        <div className="border border-amber-700 rounded-xl p-3 bg-amber-950/20">
+          <p className="text-sm font-medium text-amber-300 mb-2">{t.forecastTitle}</p>
+          {forecast.shortfalls.map((s: { category: string; shortfall: number; unit: string }) => (
+            <p key={s.category} className="text-xs text-amber-200">
+              {t.categories[s.category as keyof typeof t.categories] || s.category}: ~{Math.round(s.shortfall)} {s.unit.toLowerCase()} {t.shortfall}
+            </p>
+          ))}
+        </div>
+      )}
+      {!needs?.length ? (
+        <p className="text-center py-8 text-slate-300">{t.noNeeds}</p>
+      ) : (
+        needs.map((need: import('../api').Need) => (
+          <NeedCard key={need.id} need={need} onFlag={deviceSecret ? handleFlag : undefined} />
+        ))
+      )}
     </div>
   )
 }

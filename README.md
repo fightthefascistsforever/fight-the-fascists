@@ -65,6 +65,20 @@ make test
 - **i18n** — Hindi + English UI toggle
 - **PWA** — offline shell caching, installable
 
+## P1 features implemented
+
+- **Volunteer shifts (F4)** — 3-hour blocks, signup caps, understaffed highlighting, night-watch notice
+- **Announcements (F7)** — steward-only logistics feed with source labels, urgent 2-confirm flow, retractions
+- **First aid directory (F5)** — aid points with stale-status expiry, non-dismissable emergency banner
+- **Stewards (F6)** — passphrase + TOTP login, JWT (10 min), grant/revoke stewards, panic revoke-all
+- **Moderation queue** — review flagged needs, approve or remove
+
+### Dev steward login
+
+Default admin credentials (change in production):
+- Passphrase: `steward-dev-pass`
+- TOTP secret: `JBSWY3DPEHPK3PXP` (add to any authenticator app)
+
 ## API overview
 
 Base URL: `/api/v1`

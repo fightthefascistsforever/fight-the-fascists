@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceServiceTest {
     private final DeviceService service = new DeviceService(
             new FtfProperties("test-pepper", "test-key", "pow-secret", 8,
-                    "jwt-secret-test", "pass", "JBSWY3DPEHPK3PXP"));
+                    "jwt-secret-test", "pass", "JBSWY3DPEHPK3PXP",
+                    800, 28.627, 77.216, "mirror", "http://localhost:5173"));
 
     @Test
     void hashIsDeterministic() {

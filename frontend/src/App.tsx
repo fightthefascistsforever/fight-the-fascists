@@ -10,6 +10,8 @@ import ShiftsPage from './pages/ShiftsPage'
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import AidPage from './pages/AidPage'
 import StewardPage from './pages/StewardPage'
+import GivePage from './pages/GivePage'
+import AboutPage from './pages/AboutPage'
 import { useAppStore } from './store'
 
 const qc = new QueryClient()
@@ -29,6 +31,8 @@ function AppInner() {
           <Route path="announce" element={<AnnouncementsPage />} />
           <Route path="aid" element={<AidPage />} />
           <Route path="steward" element={<StewardPage />} />
+          <Route path="give" element={<GivePage />} />
+          <Route path="about" element={<AboutPage />} />
           <Route path="my" element={<MyPage />} />
         </Route>
       </Routes>
