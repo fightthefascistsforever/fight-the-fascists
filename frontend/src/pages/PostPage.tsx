@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useZones } from '../hooks'
+import { useZones, useChapterSlug } from '../hooks'
 import { createNeed, registerDevice } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
@@ -11,6 +11,7 @@ const UNITS = ['LITRES', 'MEALS', 'PACKETS', 'PIECES', 'PEOPLE_SERVED']
 const URGENCIES = ['URGENT', 'SOON', 'ROUTINE']
 
 export default function PostPage() {
+  const chapterSlug = useChapterSlug()
   const { locale, deviceSecret, setDevice } = useAppStore()
   const t = strings[locale]
   const { data: zones } = useZones()
@@ -38,7 +39,7 @@ export default function PostPage() {
     try {
       const secret = await ensureDevice()
       const idempotencyKey = crypto.randomUUID()
-      await createNeed(secret, {
+      await createNeed(chapterSlug, secret, {
         zoneId,
         category,
         quantity: parseFloat(quantity),
@@ -46,7 +47,7 @@ export default function PostPage() {
         urgency,
         note: note || null,
       }, idempotencyKey)
-      navigate('/')
+      navigate(`/${chapterSlug}`)
     } catch (err: unknown) {
       const e = err as { error?: { message?: string } }
       setError(e?.error?.message || 'Failed to post need')

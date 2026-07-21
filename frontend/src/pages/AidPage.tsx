@@ -2,11 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchAidPoints } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function AidPage() {
+  const chapterSlug = useChapterSlug()
   const { locale } = useAppStore()
   const t = strings[locale]
-  const { data: points, isLoading } = useQuery({ queryKey: ['aid'], queryFn: fetchAidPoints })
+  const { data: points, isLoading } = useQuery({
+    queryKey: ['aid', chapterSlug],
+    queryFn: () => fetchAidPoints(chapterSlug),
+  })
 
   return (
     <div className="space-y-4">

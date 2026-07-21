@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchBulkPledges, createBulkPledge, registerDevice } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 const CATEGORIES = ['WATER', 'FOOD_COOKED', 'FOOD_DRY', 'ORS_ELECTROLYTE']
 const SLOTS = [
@@ -12,10 +13,14 @@ const SLOTS = [
 ]
 
 export default function GivePage() {
+  const chapterSlug = useChapterSlug()
   const { locale, deviceSecret, setDevice } = useAppStore()
   const t = strings[locale]
   const qc = useQueryClient()
-  const { data: pledges } = useQuery({ queryKey: ['bulk'], queryFn: fetchBulkPledges })
+  const { data: pledges } = useQuery({
+    queryKey: ['bulk', chapterSlug],
+    queryFn: () => fetchBulkPledges(chapterSlug),
+  })
 
   const [orgName, setOrgName] = useState('')
   const [category, setCategory] = useState('FOOD_COOKED')
@@ -38,12 +43,12 @@ export default function GivePage() {
         setDevice(reg.deviceSecret, reg.handle)
         secret = reg.deviceSecret
       }
-      await createBulkPledge(secret, {
+      await createBulkPledge(chapterSlug, secret, {
         orgName, category, quantity: parseFloat(quantity), unit,
         slotHour, slotLabel, foodSafetyAck,
         prepWindowMinutes: category === 'FOOD_COOKED' ? 120 : null,
       })
-      qc.invalidateQueries({ queryKey: ['bulk'] })
+      qc.invalidateQueries({ queryKey: ['bulk', chapterSlug] })
       setOrgName('')
     } catch (err: unknown) {
       const e = err as { error?: { message?: string } }

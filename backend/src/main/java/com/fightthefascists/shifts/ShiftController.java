@@ -1,5 +1,6 @@
 package com.fightthefascists.shifts;
 
+import com.fightthefascists.chapters.ChapterService;
 import com.fightthefascists.common.ApiEnvelope;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
@@ -11,38 +12,50 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/shifts")
+@RequestMapping("/api/v1/chapters/{chapterSlug}/shifts")
 public class ShiftController {
     private final ShiftService service;
+    private final ChapterService chapters;
 
-    public ShiftController(ShiftService service) {
+    public ShiftController(ShiftService service, ChapterService chapters) {
         this.service = service;
+        this.chapters = chapters;
     }
 
     @GetMapping
     public Mono<ApiEnvelope<List<ShiftService.ShiftDto>>> list(
+            @PathVariable String chapterSlug,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
         Instant f = from != null ? Instant.parse(from) : Instant.now();
         Instant t = to != null ? Instant.parse(to) : f.plusSeconds(7 * 24 * 3600);
-        return service.list(f, t).collectList().map(ApiEnvelope::of);
+        return chapters.requireActive(chapterSlug)
+                .flatMap(ch -> service.list(ch.id(), f, t).collectList())
+                .map(ApiEnvelope::of);
     }
 
     @PostMapping("/{id}/signup")
     public Mono<ApiEnvelope<ShiftService.SignupResult>> signup(
-            @PathVariable UUID id, ServerWebExchange exchange) {
-        return service.signup(exchange, id).map(ApiEnvelope::of);
+            @PathVariable String chapterSlug, @PathVariable UUID id, ServerWebExchange exchange) {
+        return chapters.requireActive(chapterSlug)
+                .then(service.signup(exchange, id))
+                .map(ApiEnvelope::of);
     }
 
     @DeleteMapping("/{id}/signup")
     public Mono<ApiEnvelope<Map<String, String>>> cancel(
-            @PathVariable UUID id, ServerWebExchange exchange) {
-        return service.cancelSignup(exchange, id).thenReturn(ApiEnvelope.of(Map.of("status", "cancelled")));
+            @PathVariable String chapterSlug, @PathVariable UUID id, ServerWebExchange exchange) {
+        return chapters.requireActive(chapterSlug)
+                .then(service.cancelSignup(exchange, id))
+                .thenReturn(ApiEnvelope.of(Map.of("status", "cancelled")));
     }
 
     @PutMapping("/{id}/handover")
     public Mono<ApiEnvelope<Map<String, String>>> handover(
-            @PathVariable UUID id, @RequestBody Map<String, String> body, ServerWebExchange exchange) {
-        return service.handover(exchange, id, body.get("note")).thenReturn(ApiEnvelope.of(Map.of("status", "saved")));
+            @PathVariable String chapterSlug, @PathVariable UUID id,
+            @RequestBody Map<String, String> body, ServerWebExchange exchange) {
+        return chapters.requireActive(chapterSlug)
+                .then(service.handover(exchange, id, body.get("note")))
+                .thenReturn(ApiEnvelope.of(Map.of("status", "saved")));
     }
 }

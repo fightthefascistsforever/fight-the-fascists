@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/Layout'
+import ChapterPickerPage from './pages/ChapterPickerPage'
 import BoardPage from './pages/BoardPage'
 import PostPage from './pages/PostPage'
 import ClaimPage from './pages/ClaimPage'
@@ -23,7 +24,8 @@ function AppInner() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout />}>
+        <Route index element={<ChapterPickerPage />} />
+        <Route path=":chapterSlug" element={<Layout />}>
           <Route index element={<BoardPage />} />
           <Route path="post" element={<PostPage />} />
           <Route path="claim/:needId" element={<ClaimPage />} />

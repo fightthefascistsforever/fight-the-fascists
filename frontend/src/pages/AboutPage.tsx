@@ -2,11 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchStats } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function AboutPage() {
+  const chapterSlug = useChapterSlug()
   const { locale } = useAppStore()
   const t = strings[locale]
-  const { data: stats, isLoading } = useQuery({ queryKey: ['stats'], queryFn: fetchStats })
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['stats', chapterSlug],
+    queryFn: () => fetchStats(chapterSlug),
+  })
 
   return (
     <div className="space-y-6">
@@ -41,15 +46,16 @@ export default function AboutPage() {
 
       <section className="space-y-2">
         <h2 className="font-bold mb-2">{t.resources}</h2>
-        <a href="/api/v1/board.pdf" target="_blank" rel="noopener"
+        <a href={`/api/v1/chapters/${chapterSlug}/board.pdf`} target="_blank" rel="noopener"
           className="block min-h-11 flex items-center justify-center bg-slate-800 border border-slate-700 rounded-lg text-sm">
           {t.printBoard}
         </a>
-        <a href="/api/v1/mirror/html" target="_blank" rel="noopener"
+        <a href={`/api/v1/chapters/${chapterSlug}/mirror/html`} target="_blank" rel="noopener"
           className="block min-h-11 flex items-center justify-center bg-slate-800 border border-slate-700 rounded-lg text-sm mt-2">
           {t.staticMirror}
         </a>
-        <a href="/api/v1/lite" className="block min-h-11 flex items-center justify-center bg-slate-800 border border-slate-700 rounded-lg text-sm mt-2">
+        <a href={`/api/v1/chapters/${chapterSlug}/lite`}
+          className="block min-h-11 flex items-center justify-center bg-slate-800 border border-slate-700 rounded-lg text-sm mt-2">
           {t.lite}
         </a>
       </section>

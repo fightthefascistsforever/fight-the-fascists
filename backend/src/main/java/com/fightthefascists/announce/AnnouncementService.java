@@ -28,18 +28,20 @@ public class AnnouncementService {
         this.sseHub = sseHub;
     }
 
-    public Flux<AnnouncementDto> listPublished() {
+    public Flux<AnnouncementDto> listPublished(short chapterId) {
         return db.sql("""
                 SELECT id, body_en, body_hi, source, urgent, published, created_at, correction_of
                 FROM announcements
-                WHERE published = true AND expires_at > now() AND retracted_by IS NULL
+                WHERE chapter_id = :chapterId
+                  AND published = true AND expires_at > now() AND retracted_by IS NULL
                 ORDER BY urgent DESC, created_at DESC LIMIT 50
                 """)
+                .bind("chapterId", chapterId)
                 .map(this::mapRow)
                 .all();
     }
 
-    public Mono<AnnouncementDto> create(ServerWebExchange exchange, CreateRequest req) {
+    public Mono<AnnouncementDto> create(short chapterId, ServerWebExchange exchange, CreateRequest req) {
         return auth.requireSteward(exchange)
                 .flatMap(ctx -> {
                     contentFilter.filter(req.bodyEn());
@@ -48,12 +50,13 @@ public class AnnouncementService {
                     boolean published = !req.urgent();
                     short confirmations = req.urgent() ? (short) 1 : (short) 2;
                     return db.sql("""
-                            INSERT INTO announcements (body_en, body_hi, source, urgent, confirmations, published,
-                                                       author_hash, editable_until, expires_at)
-                            VALUES (:bodyEn, :bodyHi, :source, :urgent, :confirmations, :published,
-                                    :author, :editableUntil, :expiresAt)
+                            INSERT INTO announcements (chapter_id, body_en, body_hi, source, urgent, confirmations,
+                                                       published, author_hash, editable_until, expires_at, correction_of)
+                            VALUES (:chapterId, :bodyEn, :bodyHi, :source, :urgent, :confirmations, :published,
+                                    :author, :editableUntil, :expiresAt, :correctionOf)
                             RETURNING id
                             """)
+                            .bind("chapterId", chapterId)
                             .bind("bodyEn", req.bodyEn())
                             .bind("bodyHi", req.bodyHi())
                             .bind("source", req.source())
@@ -63,37 +66,48 @@ public class AnnouncementService {
                             .bind("author", ctx.deviceHash())
                             .bind("editableUntil", now.plusSeconds(15 * 60))
                             .bind("expiresAt", now.plusSeconds(7 * 24 * 3600))
+                            .bind("correctionOf", req.correctionOf())
                             .map((row, meta) -> row.get("id", UUID.class))
                             .one()
                             .flatMap(this::findById)
-                            .doOnNext(a -> { if (a.published()) sseHub.broadcast("announcement.published", a); });
+                            .doOnNext(a -> {
+                                if (a.published()) sseHub.broadcast(chapterId, "announcement.published", a);
+                            });
                 });
     }
 
-    public Mono<AnnouncementDto> confirm(ServerWebExchange exchange, UUID id) {
+    public Mono<AnnouncementDto> confirm(short chapterId, ServerWebExchange exchange, UUID id) {
         return auth.requireSteward(exchange)
                 .flatMap(ctx -> db.sql("""
                         UPDATE announcements SET confirmations = confirmations + 1,
                             published = CASE WHEN confirmations + 1 >= 2 THEN true ELSE published END
-                        WHERE id = :id AND urgent = true AND published = false
+                        WHERE id = :id AND chapter_id = :chapterId
+                          AND urgent = true AND published = false
                         RETURNING id
                         """)
                         .bind("id", id)
+                        .bind("chapterId", chapterId)
                         .map((row, meta) -> row.get("id", UUID.class))
                         .one()
                         .switchIfEmpty(Mono.error(new AppException("NOT_FOUND", "Announcement not found", "घोषणा नहीं मिली")))
                         .flatMap(aid -> auth.audit(ctx.deviceHash(), "CONFIRM_ANNOUNCEMENT", id).then(findById(aid)))
-                        .doOnNext(a -> { if (a.published()) sseHub.broadcast("announcement.published", a); }));
+                        .doOnNext(a -> {
+                            if (a.published()) sseHub.broadcast(chapterId, "announcement.published", a);
+                        }));
     }
 
-    public Mono<AnnouncementDto> retract(ServerWebExchange exchange, UUID id, String correctionBody) {
-        // F7.E2 — retraction posts CORRECTION item
+    public Mono<AnnouncementDto> retract(short chapterId, ServerWebExchange exchange, UUID id, String correctionBody) {
         return auth.requireSteward(exchange)
-                .flatMap(ctx -> db.sql("UPDATE announcements SET retracted_by = id WHERE id = :id AND retracted_by IS NULL")
-                        .bind("id", id).fetch().rowsUpdated()
+                .flatMap(ctx -> db.sql("""
+                        UPDATE announcements SET retracted_by = id
+                        WHERE id = :id AND chapter_id = :chapterId AND retracted_by IS NULL
+                        """)
+                        .bind("id", id)
+                        .bind("chapterId", chapterId)
+                        .fetch().rowsUpdated()
                         .flatMap(updated -> {
                             if (updated == 0) return Mono.error(new AppException("NOT_FOUND", "Not found", "नहीं मिला"));
-                            return create(exchange, new CreateRequest(
+                            return create(chapterId, exchange, new CreateRequest(
                                     "CORRECTION: " + correctionBody, null,
                                     "OBSERVED_ON_SITE", false, id));
                         })

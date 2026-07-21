@@ -1,7 +1,7 @@
 import type { Need } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 interface Props {
   need: Need
@@ -10,6 +10,7 @@ interface Props {
 
 export default function NeedCard({ need, onFlag }: Props) {
   const { locale } = useAppStore()
+  const { chapterSlug } = useParams<{ chapterSlug: string }>()
   const t = strings[locale]
   const pct = Math.min(100, (need.pledged / need.quantity) * 100)
   const urgencyClass =
@@ -47,7 +48,7 @@ export default function NeedCard({ need, onFlag }: Props) {
 
       <div className="mt-3 flex gap-2">
         <Link
-          to={`/claim/${need.id}`}
+          to={`/${chapterSlug}/claim/${need.id}`}
           className="flex-1 min-h-11 flex items-center justify-center bg-teal-600 hover:bg-teal-500 rounded-lg font-medium text-center"
         >
           {t.claim}

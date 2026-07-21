@@ -2,12 +2,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchShifts, signupShift, registerDevice } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function ShiftsPage() {
+  const chapterSlug = useChapterSlug()
   const { locale, deviceSecret, setDevice } = useAppStore()
   const t = strings[locale]
   const qc = useQueryClient()
-  const { data: shifts, isLoading } = useQuery({ queryKey: ['shifts'], queryFn: fetchShifts })
+  const { data: shifts, isLoading } = useQuery({
+    queryKey: ['shifts', chapterSlug],
+    queryFn: () => fetchShifts(chapterSlug),
+  })
 
   const ensureDevice = async () => {
     if (deviceSecret) return deviceSecret
@@ -18,8 +23,8 @@ export default function ShiftsPage() {
 
   const handleSignup = async (id: string) => {
     const secret = await ensureDevice()
-    await signupShift(secret, id)
-    qc.invalidateQueries({ queryKey: ['shifts'] })
+    await signupShift(chapterSlug, secret, id)
+    qc.invalidateQueries({ queryKey: ['shifts', chapterSlug] })
   }
 
   if (isLoading) return <p className="text-center py-8 text-slate-400">{t.loading}</p>

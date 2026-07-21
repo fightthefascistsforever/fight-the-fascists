@@ -12,12 +12,13 @@ public class ZoneRepository {
         this.db = db;
     }
 
-    public Flux<ZoneDto> findAllActive() {
+    public Flux<ZoneDto> findAllActive(short chapterId) {
         return db.sql("""
                 SELECT id, code, name_en, name_hi, landmark_en, landmark_hi, handoff_point,
                        svg_x, svg_y, status::text
-                FROM zones WHERE status != 'ARCHIVED' ORDER BY sort_order
+                FROM zones WHERE chapter_id = :chapterId AND status != 'ARCHIVED' ORDER BY sort_order
                 """)
+                .bind("chapterId", chapterId)
                 .map((row, meta) -> new ZoneDto(
                         row.get("id", Short.class),
                         row.get("code", String.class),

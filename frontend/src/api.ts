@@ -1,5 +1,9 @@
 const API = '/api/v1'
 
+function chapterPath(slug: string, path: string) {
+  return `/chapters/${slug}${path}`
+}
+
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input)
   const hash = await crypto.subtle.digest('SHA-256', data)
@@ -49,27 +53,32 @@ async function apiFetch(path: string, opts: RequestInit & { deviceSecret?: strin
   return json
 }
 
+export async function fetchChapters() {
+  const json = await apiFetch('/chapters')
+  return json.data as Chapter[]
+}
+
 export async function registerDevice(): Promise<{ deviceSecret: string; handle: string }> {
   const json = await apiFetch('/devices/register', { method: 'POST' })
   return { deviceSecret: json.data.deviceSecret, handle: json.data.handle }
 }
 
-export async function fetchZones() {
-  const json = await apiFetch('/zones')
+export async function fetchZones(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/zones'))
   return json.data
 }
 
-export async function fetchNeeds(zone?: number, category?: string) {
+export async function fetchNeeds(chapterSlug: string, zone?: number, category?: string) {
   const params = new URLSearchParams()
   if (zone) params.set('zone', String(zone))
   if (category) params.set('category', category)
   const q = params.toString() ? `?${params}` : ''
-  const json = await apiFetch(`/needs${q}`)
+  const json = await apiFetch(chapterPath(chapterSlug, `/needs${q}`))
   return json.data
 }
 
-export async function createNeed(deviceSecret: string, body: object, idempotencyKey: string) {
-  return apiFetch('/needs', {
+export async function createNeed(chapterSlug: string, deviceSecret: string, body: object, idempotencyKey: string) {
+  return apiFetch(chapterPath(chapterSlug, '/needs'), {
     method: 'POST',
     deviceSecret,
     pow: true,
@@ -78,8 +87,8 @@ export async function createNeed(deviceSecret: string, body: object, idempotency
   })
 }
 
-export async function createClaim(deviceSecret: string, needId: string, body: object) {
-  return apiFetch(`/needs/${needId}/claims`, {
+export async function createClaim(chapterSlug: string, deviceSecret: string, needId: string, body: object) {
+  return apiFetch(chapterPath(chapterSlug, `/needs/${needId}/claims`), {
     method: 'POST',
     deviceSecret,
     pow: true,
@@ -87,8 +96,8 @@ export async function createClaim(deviceSecret: string, needId: string, body: ob
   })
 }
 
-export async function flagCovered(deviceSecret: string, needId: string) {
-  return apiFetch(`/needs/${needId}/flag`, {
+export async function flagCovered(chapterSlug: string, deviceSecret: string, needId: string) {
+  return apiFetch(chapterPath(chapterSlug, `/needs/${needId}/flag`), {
     method: 'POST',
     deviceSecret,
     body: JSON.stringify({ reason: 'ALREADY_COVERED' }),
@@ -99,22 +108,22 @@ export async function forgetDevice(deviceSecret: string) {
   return apiFetch('/devices/me', { method: 'DELETE', deviceSecret })
 }
 
-export async function fetchShifts() {
-  const json = await apiFetch('/shifts')
+export async function fetchShifts(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/shifts'))
   return json.data
 }
 
-export async function signupShift(deviceSecret: string, shiftId: string) {
-  return apiFetch(`/shifts/${shiftId}/signup`, { method: 'POST', deviceSecret })
+export async function signupShift(chapterSlug: string, deviceSecret: string, shiftId: string) {
+  return apiFetch(chapterPath(chapterSlug, `/shifts/${shiftId}/signup`), { method: 'POST', deviceSecret })
 }
 
-export async function fetchAnnouncements() {
-  const json = await apiFetch('/announcements')
+export async function fetchAnnouncements(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/announcements'))
   return json.data
 }
 
-export async function fetchAidPoints() {
-  const json = await apiFetch('/aid-points')
+export async function fetchAidPoints(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/aid-points'))
   return json.data
 }
 
@@ -127,45 +136,54 @@ export async function stewardLogin(deviceSecret: string, passphrase: string, tot
   return json.data as { token: string; tier: string }
 }
 
-export async function fetchModerationQueue(stewardToken: string) {
-  const json = await apiFetch('/moderation/queue', { stewardToken })
+export async function fetchModerationQueue(chapterSlug: string, stewardToken: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/moderation/queue'), { stewardToken })
   return json.data
 }
 
-export async function approveNeed(stewardToken: string, needId: string) {
-  return apiFetch(`/moderation/${needId}/approve`, { method: 'POST', stewardToken })
+export async function approveNeed(chapterSlug: string, stewardToken: string, needId: string) {
+  return apiFetch(chapterPath(chapterSlug, `/moderation/${needId}/approve`), { method: 'POST', stewardToken })
 }
 
-export async function removeNeed(stewardToken: string, needId: string) {
-  return apiFetch(`/moderation/${needId}/remove`, { method: 'POST', stewardToken })
+export async function removeNeed(chapterSlug: string, stewardToken: string, needId: string) {
+  return apiFetch(chapterPath(chapterSlug, `/moderation/${needId}/remove`), { method: 'POST', stewardToken })
 }
 
-export async function createAnnouncement(stewardToken: string, body: object) {
-  return apiFetch('/announcements', { method: 'POST', stewardToken, body: JSON.stringify(body) })
+export async function createAnnouncement(chapterSlug: string, stewardToken: string, body: object) {
+  return apiFetch(chapterPath(chapterSlug, '/announcements'), { method: 'POST', stewardToken, body: JSON.stringify(body) })
 }
 
-export async function fetchBulkPledges() {
-  const json = await apiFetch('/bulk-pledges')
+export async function fetchBulkPledges(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/bulk-pledges'))
   return json.data
 }
 
-export async function createBulkPledge(deviceSecret: string, body: object) {
-  return apiFetch('/bulk-pledges', { method: 'POST', deviceSecret, body: JSON.stringify(body) })
+export async function createBulkPledge(chapterSlug: string, deviceSecret: string, body: object) {
+  return apiFetch(chapterPath(chapterSlug, '/bulk-pledges'), { method: 'POST', deviceSecret, body: JSON.stringify(body) })
 }
 
-export async function fetchForecast() {
-  const json = await apiFetch('/forecast')
+export async function fetchForecast(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/forecast'))
   return json.data
 }
 
-export async function fetchHeatBand() {
-  const json = await apiFetch('/heat-band')
+export async function fetchHeatBand(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/heat-band'))
   return json.data
 }
 
-export async function fetchStats() {
-  const json = await apiFetch('/stats')
+export async function fetchStats(chapterSlug: string) {
+  const json = await apiFetch(chapterPath(chapterSlug, '/stats'))
   return json.data
+}
+
+export interface Chapter {
+  slug: string
+  nameEn: string
+  nameHi?: string
+  locationLabelEn: string
+  locationLabelHi?: string
+  status: string
 }
 
 export interface BulkPledge {

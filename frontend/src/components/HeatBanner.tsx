@@ -1,10 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchHeatBand } from '../api'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function HeatBanner() {
   const { locale } = useAppStore()
-  const { data: heat } = useQuery({ queryKey: ['heat'], queryFn: fetchHeatBand, staleTime: 15 * 60_000 })
+  const chapterSlug = useChapterSlug()
+  const { data: heat } = useQuery({
+    queryKey: ['heat', chapterSlug],
+    queryFn: () => fetchHeatBand(chapterSlug),
+    staleTime: 15 * 60_000,
+  })
 
   if (!heat) return null
 

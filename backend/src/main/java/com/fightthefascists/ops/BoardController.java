@@ -1,9 +1,9 @@
 package com.fightthefascists.ops;
 
+import com.fightthefascists.chapters.ChapterService;
 import com.fightthefascists.common.ApiEnvelope;
 import com.fightthefascists.config.RedisConfig.FtfProperties;
 import com.fightthefascists.needs.NeedService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
@@ -18,6 +18,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
@@ -40,8 +41,8 @@ class BoardPdfService {
         this.props = props;
     }
 
-    Mono<byte[]> generate() {
-        return needService.listOpen(null, null).collectList()
+    Mono<byte[]> generate(ChapterService.Chapter chapter) {
+        return needService.listOpen(chapter.id(), null, null).collectList()
                 .map(needs -> {
                     try (PDDocument doc = new PDDocument()) {
                         PDPage page = new PDPage(PDRectangle.A4);
@@ -54,16 +55,16 @@ class BoardPdfService {
                             cs.beginText();
                             cs.setFont(bold, 16);
                             cs.newLineAtOffset(50, y);
-                            cs.showText("Fight the Fascists — Supply Board");
+                            cs.showText("Fight the Fascists — " + chapter.nameEn());
                             cs.endText();
 
-                            String date = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"))
-                                    .format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")) + " IST";
+                            String date = ZonedDateTime.now(ZoneId.of(chapter.timezone()))
+                                    .format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm z"));
                             y -= 20;
                             cs.beginText();
                             cs.setFont(font, 10);
                             cs.newLineAtOffset(50, y);
-                            cs.showText(date);
+                            cs.showText(chapter.locationLabelEn() + " — " + date);
                             cs.endText();
 
                             y -= 30;
@@ -87,8 +88,10 @@ class BoardPdfService {
                                 }
                             }
 
-                            // QR code
-                            BufferedImage qr = generateQr(props.publicUrl());
+                            String qrUrl = chapter.publicUrl() != null
+                                    ? chapter.publicUrl()
+                                    : props.publicUrl() + "/" + chapter.slug();
+                            BufferedImage qr = generateQr(qrUrl);
                             ByteArrayOutputStream imgBytes = new ByteArrayOutputStream();
                             ImageIO.write(qr, "PNG", imgBytes);
                             PDImageXObject qrImage = PDImageXObject.createFromByteArray(doc, imgBytes.toByteArray(), "qr");
@@ -116,31 +119,38 @@ class BoardPdfService {
 }
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/chapters/{chapterSlug}")
 class BoardController {
     private final BoardPdfService pdfService;
+    private final ChapterService chapters;
 
-    BoardController(BoardPdfService pdfService) {
+    BoardController(BoardPdfService pdfService, ChapterService chapters) {
         this.pdfService = pdfService;
+        this.chapters = chapters;
     }
 
     @GetMapping(value = "/board.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    public Mono<byte[]> boardPdf() {
-        return pdfService.generate();
+    public Mono<byte[]> boardPdf(@PathVariable String chapterSlug) {
+        return chapters.requireActive(chapterSlug)
+                .flatMap(pdfService::generate);
     }
 }
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/chapters/{chapterSlug}")
 class StatsController {
     private final StatsService stats;
+    private final ChapterService chapters;
 
-    StatsController(StatsService stats) {
+    StatsController(StatsService stats, ChapterService chapters) {
         this.stats = stats;
+        this.chapters = chapters;
     }
 
     @GetMapping("/stats")
-    public Mono<ApiEnvelope<Map<String, Object>>> stats() {
-        return stats.transparencyStats().map(ApiEnvelope::of);
+    public Mono<ApiEnvelope<Map<String, Object>>> stats(@PathVariable String chapterSlug) {
+        return chapters.requireActive(chapterSlug)
+                .flatMap(ch -> stats.transparencyStats(ch.id()))
+                .map(ApiEnvelope::of);
     }
 }

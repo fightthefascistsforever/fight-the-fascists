@@ -1,35 +1,22 @@
 package com.fightthefascists.forecast;
 
-import com.fightthefascists.bulk.BulkPledgeService;
-import com.fightthefascists.config.RedisConfig.FtfProperties;
-import org.springframework.r2dbc.core.DatabaseClient;
+import com.fightthefascists.chapters.ChapterService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class HeatBandService {
-    private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
     private final WebClient client = WebClient.builder().build();
-    private final FtfProperties props;
-    private volatile CachedWeather cache;
+    private final Map<Short, CachedWeather> cache = new ConcurrentHashMap<>();
 
-    public HeatBandService(FtfProperties props) {
-        this.props = props;
-    }
-
-    public Mono<HeatBandResponse> getHeatBand() {
-        return fetchTemperature()
+    public Mono<HeatBandResponse> getHeatBand(ChapterService.Chapter chapter) {
+        return fetchTemperature(chapter)
                 .map(temp -> {
                     String band = temp >= 42 ? "RED" : temp >= 38 ? "AMBER" : "GREEN";
                     String message = switch (band) {
@@ -46,26 +33,27 @@ public class HeatBandService {
                 });
     }
 
-    public Mono<String> currentBand() {
-        return fetchTemperature().map(temp -> temp >= 42 ? "RED" : temp >= 38 ? "AMBER" : "GREEN");
+    public Mono<String> currentBand(ChapterService.Chapter chapter) {
+        return fetchTemperature(chapter).map(temp -> temp >= 42 ? "RED" : temp >= 38 ? "AMBER" : "GREEN");
     }
 
-    private Mono<Double> fetchTemperature() {
-        if (cache != null && cache.expires.isAfter(Instant.now())) {
-            return Mono.just(cache.temp);
+    private Mono<Double> fetchTemperature(ChapterService.Chapter chapter) {
+        CachedWeather c = cache.get(chapter.id());
+        if (c != null && c.expires.isAfter(Instant.now())) {
+            return Mono.just(c.temp);
         }
         String url = String.format(
                 "https://api.open-meteo.com/v1/forecast?latitude=%.3f&longitude=%.3f&current=temperature_2m",
-                props.siteLat(), props.siteLon());
+                chapter.siteLat(), chapter.siteLon());
         return client.get().uri(url).retrieve().bodyToMono(Map.class)
                 .map(body -> {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> current = (Map<String, Object>) body.get("current");
                     double temp = ((Number) current.get("temperature_2m")).doubleValue();
-                    cache = new CachedWeather(temp, Instant.now().plus(Duration.ofMinutes(15)));
+                    cache.put(chapter.id(), new CachedWeather(temp, Instant.now().plus(Duration.ofMinutes(15))));
                     return temp;
                 })
-                .onErrorReturn(40.0); // Delhi summer default if API unavailable
+                .onErrorReturn(40.0);
     }
 
     private record CachedWeather(double temp, Instant expires) {}

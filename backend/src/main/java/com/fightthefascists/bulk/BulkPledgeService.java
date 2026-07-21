@@ -11,7 +11,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -31,12 +30,15 @@ public class BulkPledgeService {
         this.deviceRepo = deviceRepo;
     }
 
-    public Flux<BulkPledgeDto> list() {
+    public Flux<BulkPledgeDto> list(short chapterId) {
         return db.sql("""
                 SELECT id, org_name, contact_note, category::text, quantity, unit::text,
                        slot_hour, slot_label, approved_by IS NOT NULL as approved, active, food_safety_ack
-                FROM bulk_pledges WHERE active = true ORDER BY slot_hour, category
+                FROM bulk_pledges
+                WHERE chapter_id = :chapterId AND active = true
+                ORDER BY slot_hour, category
                 """)
+                .bind("chapterId", chapterId)
                 .map((row, meta) -> new BulkPledgeDto(
                         row.get("id", UUID.class),
                         row.get("org_name", String.class),
@@ -51,13 +53,12 @@ public class BulkPledgeService {
                 .all();
     }
 
-    public Mono<BulkPledgeDto> create(ServerWebExchange exchange, CreateRequest req) {
+    public Mono<BulkPledgeDto> create(short chapterId, ServerWebExchange exchange, CreateRequest req) {
         return deviceRepo.resolveFromRequest(exchange)
                 .flatMap(hash -> {
                     contentFilter.filter(req.orgName());
                     if (req.contactNote() != null) contentFilter.filter(req.contactNote());
 
-                    // F8.E2 — cooked food safety
                     if ("FOOD_COOKED".equals(req.category())) {
                         if (!req.foodSafetyAck()) {
                             return Mono.error(new AppException("FOOD_SAFETY_REQUIRED",
@@ -75,12 +76,13 @@ public class BulkPledgeService {
                             || "FOOD_COOKED".equals(req.category());
 
                     var sql = db.sql("""
-                            INSERT INTO bulk_pledges (org_name, contact_note, category, quantity, unit,
+                            INSERT INTO bulk_pledges (chapter_id, org_name, contact_note, category, quantity, unit,
                                 slot_hour, slot_label, prep_window_minutes, food_safety_ack, approved_by)
-                            VALUES (:org, :contact, :category::need_category, :qty, :unit::qty_unit,
+                            VALUES (:chapterId, :org, :contact, :category::need_category, :qty, :unit::qty_unit,
                                 :hour, :label, :prep, :ack, :approved)
                             RETURNING id
                             """)
+                            .bind("chapterId", chapterId)
                             .bind("org", req.orgName())
                             .bind("contact", req.contactNote())
                             .bind("category", req.category())
@@ -102,14 +104,16 @@ public class BulkPledgeService {
                 });
     }
 
-    public Mono<BulkPledgeDto> approve(ServerWebExchange exchange, UUID id) {
-        // F8.E3 — steward approval before counting against demand
+    public Mono<BulkPledgeDto> approve(short chapterId, ServerWebExchange exchange, UUID id) {
         return auth.requireSteward(exchange)
                 .flatMap(ctx -> db.sql("""
-                        UPDATE bulk_pledges SET approved_by = :hash WHERE id = :id AND approved_by IS NULL
+                        UPDATE bulk_pledges SET approved_by = :hash
+                        WHERE id = :id AND chapter_id = :chapterId AND approved_by IS NULL
                         RETURNING id
                         """)
-                        .bind("hash", ctx.deviceHash()).bind("id", id)
+                        .bind("hash", ctx.deviceHash())
+                        .bind("id", id)
+                        .bind("chapterId", chapterId)
                         .map((row, meta) -> row.get("id", UUID.class))
                         .one()
                         .switchIfEmpty(Mono.error(new AppException("NOT_FOUND", "Not found or already approved", "नहीं मिला")))
@@ -117,18 +121,27 @@ public class BulkPledgeService {
                         .flatMap(dto -> auth.audit(ctx.deviceHash(), "APPROVE_BULK", id).thenReturn(dto)));
     }
 
-    public Mono<Void> confirmDelivery(UUID id) {
-        return db.sql("UPDATE bulk_pledges SET last_confirmed_at = now(), missed_streak = 0 WHERE id = :id")
-                .bind("id", id).fetch().rowsUpdated().then();
+    public Mono<Void> confirmDelivery(short chapterId, UUID id) {
+        return db.sql("""
+                UPDATE bulk_pledges SET last_confirmed_at = now(), missed_streak = 0
+                WHERE id = :id AND chapter_id = :chapterId
+                """)
+                .bind("id", id)
+                .bind("chapterId", chapterId)
+                .fetch().rowsUpdated()
+                .then();
     }
 
-    public Mono<BigDecimal> approvedSupplyFor(String category, int hour) {
+    public Mono<BigDecimal> approvedSupplyFor(short chapterId, String category, int hour) {
         return db.sql("""
                 SELECT COALESCE(SUM(quantity), 0) as total FROM bulk_pledges
-                WHERE category = :cat::need_category AND slot_hour = :hour
+                WHERE chapter_id = :chapterId
+                  AND category = :cat::need_category AND slot_hour = :hour
                   AND active = true AND approved_by IS NOT NULL
                 """)
-                .bind("cat", category).bind("hour", hour)
+                .bind("chapterId", chapterId)
+                .bind("cat", category)
+                .bind("hour", hour)
                 .map((row, meta) -> row.get("total", BigDecimal.class))
                 .one();
     }

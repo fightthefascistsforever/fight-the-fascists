@@ -1,7 +1,6 @@
 package com.fightthefascists.moderation;
 
 import com.fightthefascists.auth.StewardAuthService;
-import com.fightthefascists.realtime.SseHub;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
@@ -16,23 +15,23 @@ public class ModerationService {
     private final DatabaseClient db;
     private final ContentFilter contentFilter;
     private final StewardAuthService auth;
-    private final SseHub sseHub;
 
     public ModerationService(DatabaseClient db, ContentFilter contentFilter,
-                             StewardAuthService auth, SseHub sseHub) {
+                             StewardAuthService auth) {
         this.db = db;
         this.contentFilter = contentFilter;
         this.auth = auth;
-        this.sseHub = sseHub;
     }
 
-    public Flux<QueueItem> reviewQueue() {
+    public Flux<QueueItem> reviewQueue(short chapterId) {
         return db.sql("""
                 SELECT n.id, n.zone_id, z.code as zone_code, n.category::text, n.created_at, n.note_enc
                 FROM needs n JOIN zones z ON z.id = n.zone_id
-                WHERE n.hidden_pending_review = true AND n.state IN ('OPEN','CLAIMED')
+                WHERE n.chapter_id = :chapterId
+                  AND n.hidden_pending_review = true AND n.state IN ('OPEN','CLAIMED')
                 ORDER BY n.created_at
                 """)
+                .bind("chapterId", chapterId)
                 .map((row, meta) -> new QueueItem(
                         row.get("id", UUID.class),
                         "NEED",
@@ -43,22 +42,27 @@ public class ModerationService {
                 .all();
     }
 
-    public Mono<Void> approve(ServerWebExchange exchange, UUID needId) {
+    public Mono<Void> approve(short chapterId, ServerWebExchange exchange, UUID needId) {
         return auth.requireSteward(exchange)
                 .flatMap(ctx -> db.sql("""
-                        UPDATE needs SET hidden_pending_review = false WHERE id = :id
+                        UPDATE needs SET hidden_pending_review = false
+                        WHERE id = :id AND chapter_id = :chapterId
                         """)
-                        .bind("id", needId).fetch().rowsUpdated()
+                        .bind("id", needId)
+                        .bind("chapterId", chapterId)
+                        .fetch().rowsUpdated()
                         .then(auth.audit(ctx.deviceHash(), "APPROVE_NEED", needId)));
     }
 
-    public Mono<Void> remove(ServerWebExchange exchange, UUID needId) {
+    public Mono<Void> remove(short chapterId, ServerWebExchange exchange, UUID needId) {
         return auth.requireSteward(exchange)
                 .flatMap(ctx -> db.sql("""
                         UPDATE needs SET state = 'WITHDRAWN', resolved_at = now(), hidden_pending_review = false
-                        WHERE id = :id
+                        WHERE id = :id AND chapter_id = :chapterId
                         """)
-                        .bind("id", needId).fetch().rowsUpdated()
+                        .bind("id", needId)
+                        .bind("chapterId", chapterId)
+                        .fetch().rowsUpdated()
                         .then(auth.audit(ctx.deviceHash(), "REMOVE_NEED", needId)));
     }
 

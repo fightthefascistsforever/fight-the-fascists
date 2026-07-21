@@ -4,7 +4,6 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,22 +15,30 @@ public class StatsService {
         this.db = db;
     }
 
-    public Mono<Map<String, Object>> transparencyStats() {
+    public Mono<Map<String, Object>> transparencyStats(short chapterId) {
         return Mono.zip(
-                aggregate("needs_posted", "SELECT count(*) FROM needs WHERE created_at > now() - interval '24 hours'"),
-                aggregate("needs_fulfilled", "SELECT count(*) FROM needs WHERE state = 'FULFILLED' AND resolved_at > now() - interval '24 hours'"),
-                aggregate("litres_delivered", """
+                aggregate("SELECT count(*) FROM needs WHERE chapter_id = :chapterId AND created_at > now() - interval '24 hours'", chapterId),
+                aggregate("SELECT count(*) FROM needs WHERE chapter_id = :chapterId AND state = 'FULFILLED' AND resolved_at > now() - interval '24 hours'", chapterId),
+                aggregate("""
                         SELECT COALESCE(SUM(delivered), 0) FROM needs
-                        WHERE category = 'WATER' AND state = 'FULFILLED' AND resolved_at > now() - interval '24 hours'
-                        """),
-                aggregate("meals_delivered", """
+                        WHERE chapter_id = :chapterId AND category = 'WATER'
+                          AND state = 'FULFILLED' AND resolved_at > now() - interval '24 hours'
+                        """, chapterId),
+                aggregate("""
                         SELECT COALESCE(SUM(delivered), 0) FROM needs
-                        WHERE category IN ('FOOD_COOKED','FOOD_DRY') AND state = 'FULFILLED'
-                          AND resolved_at > now() - interval '24 hours'
-                        """),
-                aggregate("claims_delivered", "SELECT count(*) FROM claims WHERE state = 'DELIVERED' AND resolved_at > now() - interval '24 hours'"),
-                aggregate("volunteer_shifts", "SELECT count(*) FROM shift_signups WHERE created_at > now() - interval '24 hours'"),
-                aggregate("active_devices", "SELECT count(*) FROM devices WHERE last_seen_at > now() - interval '24 hours'")
+                        WHERE chapter_id = :chapterId AND category IN ('FOOD_COOKED','FOOD_DRY')
+                          AND state = 'FULFILLED' AND resolved_at > now() - interval '24 hours'
+                        """, chapterId),
+                aggregate("""
+                        SELECT count(*) FROM claims c JOIN needs n ON n.id = c.need_id
+                        WHERE n.chapter_id = :chapterId AND c.state = 'DELIVERED'
+                          AND c.resolved_at > now() - interval '24 hours'
+                        """, chapterId),
+                aggregate("""
+                        SELECT count(*) FROM shift_signups s JOIN shifts sh ON sh.id = s.shift_id
+                        WHERE sh.chapter_id = :chapterId AND s.created_at > now() - interval '24 hours'
+                        """, chapterId),
+                aggregate("SELECT count(*) FROM devices WHERE last_seen_at > now() - interval '24 hours'", chapterId)
         ).map(tuple -> {
             Map<String, Object> stats = new LinkedHashMap<>();
             stats.put("period", "24h");
@@ -47,11 +54,11 @@ public class StatsService {
         });
     }
 
-    private Mono<Long> aggregate(String name, String sql) {
-        return db.sql(sql).map((row, meta) -> row.get(0, Long.class)).one().defaultIfEmpty(0L);
+    private Mono<Long> aggregate(String sql, short chapterId) {
+        return db.sql(sql).bind("chapterId", chapterId)
+                .map((row, meta) -> row.get(0, Long.class)).one().defaultIfEmpty(0L);
     }
 
-    // k-anonymity: bucket small counts to 0
     private long bucket(Long value) {
         if (value == null || value < 5) return 0;
         return value;

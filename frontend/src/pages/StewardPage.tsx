@@ -6,8 +6,10 @@ import {
 } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function StewardPage() {
+  const chapterSlug = useChapterSlug()
   const { locale, deviceSecret, stewardToken, stewardTier, setDevice, setStewardToken, clearStewardToken } = useAppStore()
   const t = strings[locale]
   const qc = useQueryClient()
@@ -18,8 +20,8 @@ export default function StewardPage() {
   const [annSource, setAnnSource] = useState('OBSERVED_ON_SITE')
 
   const { data: queue } = useQuery({
-    queryKey: ['moderation'],
-    queryFn: () => fetchModerationQueue(stewardToken!),
+    queryKey: ['moderation', chapterSlug],
+    queryFn: () => fetchModerationQueue(chapterSlug, stewardToken!),
     enabled: !!stewardToken,
   })
 
@@ -42,20 +44,20 @@ export default function StewardPage() {
   }
 
   const handleApprove = async (id: string) => {
-    await approveNeed(stewardToken!, id)
-    qc.invalidateQueries({ queryKey: ['moderation'] })
+    await approveNeed(chapterSlug, stewardToken!, id)
+    qc.invalidateQueries({ queryKey: ['moderation', chapterSlug] })
   }
 
   const handleRemove = async (id: string) => {
-    await removeNeed(stewardToken!, id)
-    qc.invalidateQueries({ queryKey: ['moderation'] })
+    await removeNeed(chapterSlug, stewardToken!, id)
+    qc.invalidateQueries({ queryKey: ['moderation', chapterSlug] })
   }
 
   const handlePostAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault()
-    await createAnnouncement(stewardToken!, { bodyEn: annBody, source: annSource, urgent: false })
+    await createAnnouncement(chapterSlug, stewardToken!, { bodyEn: annBody, source: annSource, urgent: false })
     setAnnBody('')
-    qc.invalidateQueries({ queryKey: ['announcements'] })
+    qc.invalidateQueries({ queryKey: ['announcements', chapterSlug] })
   }
 
   if (!stewardToken) {

@@ -107,6 +107,12 @@ export const strings = {
     notTracking: 'This tool does not track individuals. Aggregate stats only.',
     forecastTitle: 'Expected shortfalls (next 6h)',
     shortfall: 'shortfall',
+    chapterPickerTitle: 'Choose a protest site',
+    activeChapters: 'Active now',
+    plannedChapters: 'Coming soon',
+    chapterNotActive: 'Not yet active',
+    noChapters: 'No chapters available.',
+    chaptersError: 'Could not load chapters.',
   },
   hi: {
     appName: 'फाइट द फैसिस्ट्स',
@@ -216,6 +222,12 @@ export const strings = {
     notTracking: 'यह उपकरण व्यक्तियों को ट्रैक नहीं करता। केवल समग्र आँकड़े।',
     forecastTitle: 'अपेक्षित कमी (अगले ६ घंटे)',
     shortfall: 'कमी',
+    chapterPickerTitle: 'विरोध स्थल चुनें',
+    activeChapters: 'अभी सक्रिय',
+    plannedChapters: 'जल्द आ रहा है',
+    chapterNotActive: 'अभी सक्रिय नहीं',
+    noChapters: 'कोई अध्याय उपलब्ध नहीं।',
+    chaptersError: 'अध्याय लोड नहीं हो सके।',
   },
 } as const
 

@@ -1,24 +1,34 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
-
-const primaryNav = [
-  { to: '/', key: 'board' as const },
-  { to: '/post', key: 'postNeed' as const },
-  { to: '/shifts', key: 'shifts' as const },
-]
-
-const secondaryNav = [
-  { to: '/announce', key: 'announcements' as const },
-  { to: '/aid', key: 'aid' as const },
-  { to: '/give', key: 'give' as const },
-  { to: '/about', key: 'about' as const },
-]
+import { fetchChapters } from '../api'
 
 export default function Layout() {
+  const { chapterSlug } = useParams<{ chapterSlug: string }>()
   const { locale, setLocale, handle } = useAppStore()
   const t = strings[locale]
   const loc = useLocation()
+  const base = `/${chapterSlug}`
+
+  const { data: chapters } = useQuery({ queryKey: ['chapters'], queryFn: fetchChapters })
+  const chapter = chapters?.find(c => c.slug === chapterSlug)
+  const chapterName = chapter
+    ? (locale === 'hi' && chapter.nameHi ? chapter.nameHi : chapter.nameEn)
+    : chapterSlug
+
+  const primaryNav = [
+    { to: base, key: 'board' as const },
+    { to: `${base}/post`, key: 'postNeed' as const },
+    { to: `${base}/shifts`, key: 'shifts' as const },
+  ]
+
+  const secondaryNav = [
+    { to: `${base}/announce`, key: 'announcements' as const },
+    { to: `${base}/aid`, key: 'aid' as const },
+    { to: `${base}/give`, key: 'give' as const },
+    { to: `${base}/about`, key: 'about' as const },
+  ]
 
   const navClass = (to: string) =>
     `flex-1 text-center py-2 rounded-lg text-xs font-medium min-h-10 flex items-center justify-center ${
@@ -30,8 +40,13 @@ export default function Layout() {
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 backdrop-blur px-4 py-3">
         <div className="mx-auto max-w-lg flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-lg font-bold leading-tight">{t.appName}</h1>
-            <p className="text-xs text-slate-400">{t.tagline}</p>
+            <Link to="/" className="text-xs text-slate-500 hover:text-slate-300">{t.appName}</Link>
+            <h1 className="text-lg font-bold leading-tight">{chapterName}</h1>
+            {chapter && (
+              <p className="text-xs text-slate-400">
+                {locale === 'hi' && chapter.locationLabelHi ? chapter.locationLabelHi : chapter.locationLabelEn}
+              </p>
+            )}
           </div>
           <button
             onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
@@ -53,14 +68,14 @@ export default function Layout() {
           {secondaryNav.map(({ to, key }) => (
             <Link key={to} to={to} className={navClass(to)}>{t[key]}</Link>
           ))}
-          <Link to="/my" className={navClass('/my')}>{t.myClaims}</Link>
+          <Link to={`${base}/my`} className={navClass(`${base}/my`)}>{t.myClaims}</Link>
         </nav>
       </header>
       <main className="mx-auto max-w-lg px-4 py-4 pb-8">
         <Outlet />
       </main>
       <footer className="text-center text-xs text-slate-600 pb-4">
-        <a href="/api/v1/lite" className="underline">{t.lite}</a>
+        <a href={`/api/v1/chapters/${chapterSlug}/lite`} className="underline">{t.lite}</a>
       </footer>
     </div>
   )

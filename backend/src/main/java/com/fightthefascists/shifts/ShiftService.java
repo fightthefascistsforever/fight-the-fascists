@@ -29,18 +29,20 @@ public class ShiftService {
         this.auth = auth;
     }
 
-    public Flux<ShiftDto> list(Instant from, Instant to) {
+    public Flux<ShiftDto> list(short chapterId, Instant from, Instant to) {
         return db.sql("""
                 SELECT s.id, s.zone_id, z.code as zone_code, s.role, s.starts_at, s.ends_at,
                        s.min_volunteers, s.max_volunteers,
                        (SELECT count(*) FROM shift_signups ss WHERE ss.shift_id = s.id) as signed_up
                 FROM shifts s JOIN zones z ON z.id = s.zone_id
-                WHERE s.starts_at >= :from AND s.starts_at < :to
+                WHERE s.chapter_id = :chapterId
+                  AND s.starts_at >= :from AND s.starts_at < :to
                 ORDER BY
                   CASE WHEN (SELECT count(*) FROM shift_signups ss WHERE ss.shift_id = s.id) < s.min_volunteers
                        AND s.starts_at <= now() + interval '3 hours' THEN 0 ELSE 1 END,
                   s.starts_at
                 """)
+                .bind("chapterId", chapterId)
                 .bind("from", from != null ? from : Instant.now())
                 .bind("to", to != null ? to : Instant.now().plusSeconds(7 * 24 * 3600))
                 .map((row, meta) -> new ShiftDto(

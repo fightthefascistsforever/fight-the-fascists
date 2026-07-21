@@ -42,19 +42,30 @@ public class ClaimService {
         this.sseHub = sseHub;
     }
 
-    public Mono<ClaimDto> create(ServerWebExchange exchange, UUID needId, CreateClaimRequest req, String powHeader) {
+    public Mono<ClaimDto> create(short chapterId, ServerWebExchange exchange, UUID needId,
+                                 CreateClaimRequest req, String powHeader) {
         powService.verify(powHeader);
         return deviceRepo.resolveFromRequest(exchange)
                 .flatMap(hash -> {
                     String hex = deviceService.hashToHex(hash);
                     return rateLimiter.check("device:" + hex + ":claims", 10, Duration.ofHours(1))
                             .then(checkActiveClaimCap(hash))
-                            .then(doClaim(hash, needId, req));
+                            .then(verifyNeedInChapter(chapterId, needId))
+                            .then(doClaim(chapterId, hash, needId, req));
                 });
     }
 
+    private Mono<Void> verifyNeedInChapter(short chapterId, UUID needId) {
+        return db.sql("SELECT 1 FROM needs WHERE id = :id AND chapter_id = :chapterId")
+                .bind("id", needId)
+                .bind("chapterId", chapterId)
+                .map((row, meta) -> 1)
+                .one()
+                .switchIfEmpty(Mono.error(new AppException("NOT_FOUND", "Need not found in this chapter", "इस अध्याय में ज़रूरत नहीं मिली")))
+                .then();
+    }
+
     private Mono<Void> checkActiveClaimCap(byte[] hash) {
-        // F2.E8 — max 3 active claims per device
         return db.sql("SELECT count(*) as c FROM claims WHERE device_hash = :hash AND state = 'ACTIVE'")
                 .bind("hash", hash)
                 .map((row, meta) -> row.get("c", Long.class))
@@ -69,45 +80,46 @@ public class ClaimService {
                 });
     }
 
-    private Mono<ClaimDto> doClaim(byte[] hash, UUID needId, CreateClaimRequest req) {
+    private Mono<ClaimDto> doClaim(short chapterId, byte[] hash, UUID needId, CreateClaimRequest req) {
         Instant eta = Instant.now().plus(Duration.ofMinutes(req.etaMinutes()));
         Instant lapseAt = eta.plus(Duration.ofMinutes(60));
         String code = handoffCodes.generate();
 
-        // F2.E5 — race-safe optimistic update
         return db.sql("""
                 UPDATE needs
                 SET pledged = pledged + :qty,
                     state = CASE WHEN pledged + :qty >= quantity THEN 'CLAIMED' ELSE state END,
                     version = version + 1
-                WHERE id = :needId
+                WHERE id = :needId AND chapter_id = :chapterId
                   AND state IN ('OPEN','CLAIMED')
                   AND hidden_pending_review = false
                   AND pledged + :qty <= quantity * 1.5
                 """)
                 .bind("qty", req.quantity())
                 .bind("needId", needId)
+                .bind("chapterId", chapterId)
                 .fetch().rowsUpdated()
                 .flatMap(updated -> {
                     if (updated == 0) {
-                        return findAlternatives(needId)
+                        return findAlternatives(chapterId, needId)
                                 .flatMap(alts -> Mono.error(new AppException("NEED_ALREADY_COVERED",
                                         "This need is already covered — try another",
                                         "यह ज़रूरत पहले से पूरी है — दूसरी आज़माएँ",
                                         java.util.Map.of("alternatives", alts))));
                     }
-                    return insertClaim(hash, needId, req.quantity(), eta, lapseAt, code);
+                    return insertClaim(chapterId, hash, needId, req.quantity(), eta, lapseAt, code);
                 });
     }
 
-    private Mono<List<NeedService.NeedDto>> findAlternatives(UUID excludeId) {
-        return needService.listOpen(null, null)
+    private Mono<List<NeedService.NeedDto>> findAlternatives(short chapterId, UUID excludeId) {
+        return needService.listOpen(chapterId, null, null)
                 .filter(n -> !n.id().equals(excludeId))
                 .take(3)
                 .collectList();
     }
 
-    private Mono<ClaimDto> insertClaim(byte[] hash, UUID needId, BigDecimal qty, Instant eta, Instant lapseAt, String code) {
+    private Mono<ClaimDto> insertClaim(short chapterId, byte[] hash, UUID needId, BigDecimal qty,
+                                       Instant eta, Instant lapseAt, String code) {
         return db.sql("""
                 INSERT INTO claims (need_id, device_hash, quantity, eta, lapse_at, handoff_code)
                 VALUES (:needId, :hash, :qty, :eta, :lapseAt, :code)
@@ -128,18 +140,19 @@ public class ClaimService {
                         row.get("handoff_code", String.class),
                         "ACTIVE"))
                 .one()
-                .doOnNext(c -> sseHub.broadcast("claim.created", c));
+                .doOnNext(c -> sseHub.broadcast(chapterId, "claim.created", c));
     }
 
-    public Mono<ClaimDto> deliver(String handoffCode, BigDecimal deliveredQty) {
-        // F2.E3 — any on-site device can confirm delivery
+    public Mono<ClaimDto> deliver(short chapterId, String handoffCode, BigDecimal deliveredQty) {
         return db.sql("""
                 UPDATE claims SET state = 'DELIVERED', delivered_qty = :qty, resolved_at = now()
                 WHERE handoff_code = :code AND state = 'ACTIVE'
+                  AND need_id IN (SELECT id FROM needs WHERE chapter_id = :chapterId)
                 RETURNING id, need_id, quantity, eta, lapse_at, handoff_code, state::text
                 """)
                 .bind("qty", deliveredQty)
                 .bind("code", handoffCode.toUpperCase())
+                .bind("chapterId", chapterId)
                 .map((row, meta) -> new ClaimDto(
                         row.get("id", UUID.class),
                         row.get("need_id", UUID.class),
@@ -162,17 +175,19 @@ public class ClaimService {
                         .bind("needId", claim.needId())
                         .fetch().rowsUpdated()
                         .thenReturn(claim))
-                .doOnNext(c -> sseHub.broadcast("claim.delivered", c));
+                .doOnNext(c -> sseHub.broadcast(chapterId, "claim.delivered", c));
     }
 
-    public Mono<Void> cancel(UUID claimId, byte[] hash) {
+    public Mono<Void> cancel(short chapterId, UUID claimId, byte[] hash) {
         return db.sql("""
                 UPDATE claims SET state = 'CANCELLED', resolved_at = now()
                 WHERE id = :id AND device_hash = :hash AND state = 'ACTIVE'
+                  AND need_id IN (SELECT id FROM needs WHERE chapter_id = :chapterId)
                 RETURNING need_id, quantity
                 """)
                 .bind("id", claimId)
                 .bind("hash", hash)
+                .bind("chapterId", chapterId)
                 .map((row, meta) -> new Object[]{row.get("need_id", UUID.class), row.get("quantity", BigDecimal.class)})
                 .one()
                 .flatMap(arr -> {

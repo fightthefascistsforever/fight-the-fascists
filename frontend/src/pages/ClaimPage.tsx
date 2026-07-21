@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createClaim, registerDevice, fetchNeeds } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 const ETA_OPTIONS = [
   { label: '30 min', minutes: 30 },
@@ -14,6 +15,7 @@ const ETA_OPTIONS = [
 
 export default function ClaimPage() {
   const { needId } = useParams<{ needId: string }>()
+  const chapterSlug = useChapterSlug()
   const { locale, deviceSecret, setDevice } = useAppStore()
   const t = strings[locale]
   const navigate = useNavigate()
@@ -24,7 +26,10 @@ export default function ClaimPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const { data: needs } = useQuery({ queryKey: ['needs'], queryFn: () => fetchNeeds() })
+  const { data: needs } = useQuery({
+    queryKey: ['needs', chapterSlug],
+    queryFn: () => fetchNeeds(chapterSlug),
+  })
   const need = needs?.find((n: { id: string }) => n.id === needId)
 
   if (!need) return <p className="text-center py-8">{t.loading}</p>
@@ -35,7 +40,7 @@ export default function ClaimPage() {
         <p className="text-slate-400">{t.handoffCode}</p>
         <p className="text-5xl font-bold tracking-widest text-teal-400">{handoffCode}</p>
         <p className="text-sm text-slate-400">{t.showAtDrop}</p>
-        <button onClick={() => navigate('/')} className="min-h-11 px-6 bg-slate-800 rounded-lg">
+        <button onClick={() => navigate(`/${chapterSlug}`)} className="min-h-11 px-6 bg-slate-800 rounded-lg">
           {t.board}
         </button>
       </div>
@@ -55,7 +60,7 @@ export default function ClaimPage() {
     try {
       const secret = await ensureDevice()
       const qty = parseFloat(quantity) || (need.quantity - need.pledged)
-      const res = await createClaim(secret, needId!, { quantity: qty, etaMinutes })
+      const res = await createClaim(chapterSlug, secret, needId!, { quantity: qty, etaMinutes })
       setHandoffCode(res.data.handoffCode)
     } catch (err: unknown) {
       const e = err as { error?: { message?: string } }
@@ -86,7 +91,7 @@ export default function ClaimPage() {
             className="w-full min-h-12 bg-teal-600 rounded-xl font-bold">
             {t.confirm}
           </button>
-          <button onClick={() => navigate('/')} className="w-full min-h-11 text-slate-400">
+          <button onClick={() => navigate(`/${chapterSlug}`)} className="w-full min-h-11 text-slate-400">
             {t.cancel}
           </button>
         </>

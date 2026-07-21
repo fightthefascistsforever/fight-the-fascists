@@ -14,7 +14,7 @@ class SecurityHeadersTest {
 
     @Test
     void securityHeadersPresent() {
-        client.get().uri("/api/v1/zones")
+        client.get().uri("/api/v1/chapters/delhi-2026/zones")
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().exists("Content-Security-Policy")

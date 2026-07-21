@@ -2,11 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchAnnouncements } from '../api'
 import { strings } from '../i18n/strings'
 import { useAppStore } from '../store'
+import { useChapterSlug } from '../hooks'
 
 export default function AnnouncementsPage() {
+  const chapterSlug = useChapterSlug()
   const { locale } = useAppStore()
   const t = strings[locale]
-  const { data: items, isLoading } = useQuery({ queryKey: ['announcements'], queryFn: fetchAnnouncements, refetchInterval: 60_000 })
+  const { data: items, isLoading } = useQuery({
+    queryKey: ['announcements', chapterSlug],
+    queryFn: () => fetchAnnouncements(chapterSlug),
+    refetchInterval: 60_000,
+  })
 
   if (isLoading) return <p className="text-center py-8 text-slate-400">{t.loading}</p>
 

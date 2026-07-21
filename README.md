@@ -79,28 +79,88 @@ Default admin credentials (change in production):
 - Passphrase: `steward-dev-pass`
 - TOTP secret: `JBSWY3DPEHPK3PXP` (add to any authenticator app)
 
+## Multi-chapter architecture
+
+Each protest site is a **chapter** — an independent instance of the platform sharing the same deployment. Delhi Jantar Mantar 2026 is the first chapter (`delhi-2026`); future sites (e.g. `berlin-2027`) can be added without code changes.
+
+- **Home** (`/`) — chapter picker listing active and planned chapters
+- **Chapter app** (`/{chapterSlug}/…`) — e.g. `/delhi-2026` for the need board
+- **Global APIs** — device registration, PoW, steward login, chapter list
+- **Chapter-scoped APIs** — needs, zones, shifts, announcements, etc. under `/api/v1/chapters/{chapterSlug}/…`
+- **Admin-only writes** — `POST/PATCH /api/v1/admin/chapters` to create, update, activate, or archive chapters
+
+### Create a new chapter (admin)
+
+```bash
+curl -X POST http://localhost:8080/api/v1/admin/chapters \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "berlin-2027",
+    "nameEn": "Berlin 2027",
+    "locationLabelEn": "Brandenburg Gate, Berlin",
+    "siteLat": 52.516, "siteLon": 13.378,
+    "timezone": "Europe/Berlin",
+    "headcountEstimate": 500,
+    "publicUrl": "https://fight-the-fascists.com/berlin-2027"
+  }'
+
+# Then activate when ready:
+curl -X POST http://localhost:8080/api/v1/admin/chapters/berlin-2027/activate \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+## P2 features implemented
+
+- **Bulk pledges (F8)** — org/recurring supply lane with food safety ack, steward approval, missed-streak downgrade
+- **Demand forecasting (F11)** — projected shortfalls next 6h based on headcount, heat band, bulk supply
+- **Heat band (F12)** — open-meteo temperature → GREEN/AMBER/RED site-wide advisory banner
+- **Printable board** — A4 PDF with needs list + QR code at `/api/v1/chapters/{slug}/board.pdf`
+- **Static mirror** — per-chapter JSON+HTML snapshot regenerated every 60s at `/api/v1/chapters/{slug}/mirror`
+- **Transparency page** — aggregate 24h stats at `/api/v1/chapters/{slug}/stats` and `/{slug}/about` in the app
+
 ## API overview
 
 Base URL: `/api/v1`
 
+### Global
+
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/chapters` | List active/planned chapters |
+| GET | `/chapters/{slug}` | Chapter details |
 | POST | `/devices/register` | Register pseudonymous device |
+| GET | `/pow/challenge` | Get proof-of-work challenge |
+| POST | `/admin/login` | Steward/admin login (passphrase + TOTP) |
+| POST | `/admin/chapters` | Create chapter (admin only) |
+| PATCH | `/admin/chapters/{slug}` | Update chapter (admin only) |
+| POST | `/admin/chapters/{slug}/activate` | Activate chapter (admin only) |
+| POST | `/admin/chapters/{slug}/archive` | Archive chapter (admin only) |
+
+### Per chapter (`/chapters/{chapterSlug}/…`)
+
+| Method | Path | Description |
+|--------|------|-------------|
 | GET | `/zones` | List site zones |
 | GET | `/needs` | List open needs |
 | POST | `/needs` | Post a need (requires X-PoW, Idempotency-Key) |
 | POST | `/needs/{id}/claims` | Claim a need |
 | POST | `/claims/deliver` | Confirm delivery via handoff code |
-| GET | `/pow/challenge` | Get proof-of-work challenge |
-| GET | `/stream` | SSE event stream |
+| GET | `/stream` | SSE event stream (chapter-scoped) |
 | GET | `/lite` | Zero-JS HTML board |
 | GET | `/shifts` | Volunteer shift roster |
 | POST | `/shifts/{id}/signup` | Sign up for a shift |
 | GET | `/announcements` | Published announcements |
 | POST | `/announcements` | Post announcement (steward+) |
 | GET | `/aid-points` | First aid directory |
-| POST | `/admin/login` | Steward/admin login (passphrase + TOTP) |
 | GET | `/moderation/queue` | Review queue (steward+) |
+| GET/POST | `/bulk-pledges` | Bulk org supply pledges |
+| GET | `/forecast` | Projected shortfalls next 6h |
+| GET | `/heat-band` | Heat advisory band |
+| GET | `/stats` | Transparency aggregate counters |
+| GET | `/board.pdf` | Printable A4 board with QR |
+| GET | `/mirror` | Static JSON snapshot |
+| GET | `/mirror/html` | Static HTML mirror |
 
 ## Project structure
 

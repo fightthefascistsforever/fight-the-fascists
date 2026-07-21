@@ -51,25 +51,26 @@ public class NeedService {
         this.sseHub = sseHub;
     }
 
-    public Flux<NeedDto> listOpen(Integer zoneId, String category) {
+    public Flux<NeedDto> listOpen(short chapterId, Integer zoneId, String category) {
         var sql = new StringBuilder("""
                 SELECT n.id, n.zone_id, z.code as zone_code, n.category::text, n.quantity, n.unit::text,
                        n.pledged, n.delivered, n.urgency::text, n.state::text, n.needed_by, n.expires_at,
                        n.covered_flags, n.version, n.note_enc
                 FROM needs n JOIN zones z ON z.id = n.zone_id
-                WHERE n.state IN ('OPEN','CLAIMED') AND n.hidden_pending_review = false
+                WHERE n.chapter_id = :chapterId
+                  AND n.state IN ('OPEN','CLAIMED') AND n.hidden_pending_review = false
                 """);
         if (zoneId != null) sql.append(" AND n.zone_id = :zoneId");
         if (category != null) sql.append(" AND n.category = :category::need_category");
         sql.append(" ORDER BY CASE n.urgency WHEN 'URGENT' THEN 0 WHEN 'SOON' THEN 1 ELSE 2 END, n.needed_by LIMIT 100");
 
-        var spec = db.sql(sql.toString());
+        var spec = db.sql(sql.toString()).bind("chapterId", chapterId);
         if (zoneId != null) spec = spec.bind("zoneId", zoneId);
         if (category != null) spec = spec.bind("category", category);
         return spec.map(this::mapNeed).all();
     }
 
-    public Mono<NeedDto> create(ServerWebExchange exchange, CreateNeedRequest req, String idempotencyKey, String powHeader) {
+    public Mono<NeedDto> create(short chapterId, ServerWebExchange exchange, CreateNeedRequest req, String idempotencyKey, String powHeader) {
         powService.verify(powHeader);
         return deviceRepo.resolveFromRequest(exchange)
                 .flatMap(hash -> {
@@ -79,7 +80,8 @@ public class NeedService {
                             .then(rateLimiter.check("zone:" + req.zoneId() + ":needs", 20, Duration.ofHours(1)))
                             .then(validateQuantity(req))
                             .then(checkDuplicateClient(req))
-                            .then(doCreate(hash, req));
+                            .then(verifyZoneInChapter(chapterId, req.zoneId()))
+                            .then(doCreate(chapterId, hash, req));
                 });
     }
 
@@ -100,7 +102,16 @@ public class NeedService {
         return Mono.empty();
     }
 
-    private Mono<NeedDto> doCreate(byte[] hash, CreateNeedRequest req) {
+    private Mono<Void> verifyZoneInChapter(short chapterId, short zoneId) {
+        return db.sql("SELECT 1 FROM zones WHERE id = :zoneId AND chapter_id = :chapterId")
+                .bind("zoneId", zoneId).bind("chapterId", chapterId)
+                .map((row, meta) -> 1).one()
+                .switchIfEmpty(Mono.error(new AppException("ZONE_NOT_IN_CHAPTER",
+                        "Zone does not belong to this chapter", "ज़ोन इस अध्याय से संबंधित नहीं है")))
+                .then();
+    }
+
+    private Mono<NeedDto> doCreate(short chapterId, byte[] hash, CreateNeedRequest req) {
         var filterResult = contentFilter.filter(req.note());
         byte[] noteEnc = filterResult.text() != null ? contentFilter.encrypt(filterResult.text()) : null;
         Instant now = Instant.now();
@@ -113,11 +124,12 @@ public class NeedService {
         Instant expiresAt = now.plus(ttl);
 
         return db.sql("""
-                INSERT INTO needs (zone_id, category, quantity, unit, urgency, note_enc, created_by, needed_by, expires_at, hidden_pending_review)
-                VALUES (:zoneId, :category::need_category, :quantity, :unit::qty_unit, :urgency::urgency_level,
+                INSERT INTO needs (chapter_id, zone_id, category, quantity, unit, urgency, note_enc, created_by, needed_by, expires_at, hidden_pending_review)
+                VALUES (:chapterId, :zoneId, :category::need_category, :quantity, :unit::qty_unit, :urgency::urgency_level,
                         :noteEnc, :createdBy, :neededBy, :expiresAt, :hidden)
                 RETURNING id
                 """)
+                .bind("chapterId", chapterId)
                 .bind("zoneId", req.zoneId())
                 .bind("category", req.category())
                 .bind("quantity", req.quantity())
@@ -139,7 +151,7 @@ public class NeedService {
                     return e;
                 })
                 .flatMap(id -> findById(id))
-                .doOnNext(n -> sseHub.broadcast("need.created", n));
+                .doOnNext(n -> sseHub.broadcast(chapterId, "need.created", n));
     }
 
     public Mono<NeedDto> findById(UUID id) {
@@ -155,32 +167,35 @@ public class NeedService {
     }
 
     public Mono<NeedDto> flagCovered(UUID needId, byte[] deviceHash) {
-        // F1.E5 — 3 distinct devices marking covered
-        return db.sql("""
-                INSERT INTO flags (target_type, target_id, device_hash, reason, weight)
-                VALUES ('NEED', :needId, :hash, 'ALREADY_COVERED', 1.0)
-                ON CONFLICT (target_type, target_id, device_hash) DO NOTHING
-                """)
-                .bind("needId", needId)
-                .bind("hash", deviceHash)
-                .fetch().rowsUpdated()
-                .then(db.sql("UPDATE needs SET covered_flags = covered_flags + 1 WHERE id = :id RETURNING covered_flags")
-                        .bind("id", needId)
-                        .map((row, meta) -> row.get("covered_flags", Short.class))
-                        .one())
-                .flatMap(flags -> {
-                    if (flags >= 3) {
-                        return db.sql("""
-                                UPDATE needs SET state = 'FULFILLED', resolved_at = now(), resolution_reason = 'COMMUNITY_RESOLVED'
-                                WHERE id = :id RETURNING id
-                                """)
+        return db.sql("SELECT chapter_id FROM needs WHERE id = :id")
+                .bind("id", needId)
+                .map((row, meta) -> row.get("chapter_id", Short.class))
+                .one()
+                .flatMap(chapterId -> db.sql("""
+                        INSERT INTO flags (target_type, target_id, device_hash, reason, weight)
+                        VALUES ('NEED', :needId, :hash, 'ALREADY_COVERED', 1.0)
+                        ON CONFLICT (target_type, target_id, device_hash) DO NOTHING
+                        """)
+                        .bind("needId", needId)
+                        .bind("hash", deviceHash)
+                        .fetch().rowsUpdated()
+                        .then(db.sql("UPDATE needs SET covered_flags = covered_flags + 1 WHERE id = :id RETURNING covered_flags")
                                 .bind("id", needId)
-                                .fetch().rowsUpdated()
-                                .then(findById(needId))
-                                .doOnNext(n -> sseHub.broadcast("need.resolved", n));
-                    }
-                    return findById(needId);
-                });
+                                .map((row, meta) -> row.get("covered_flags", Short.class))
+                                .one())
+                        .flatMap(flags -> {
+                            if (flags >= 3) {
+                                return db.sql("""
+                                        UPDATE needs SET state = 'FULFILLED', resolved_at = now(), resolution_reason = 'COMMUNITY_RESOLVED'
+                                        WHERE id = :id RETURNING id
+                                        """)
+                                        .bind("id", needId)
+                                        .fetch().rowsUpdated()
+                                        .then(findById(needId))
+                                        .doOnNext(n -> sseHub.broadcast(chapterId, "need.resolved", n));
+                            }
+                            return findById(needId);
+                        }));
     }
 
     private NeedDto mapNeed(io.r2dbc.spi.Row row, io.r2dbc.spi.RowMetadata meta) {

@@ -1,7 +1,7 @@
 package com.fightthefascists.forecast;
 
 import com.fightthefascists.bulk.BulkPledgeService;
-import com.fightthefascists.config.RedisConfig.FtfProperties;
+import com.fightthefascists.chapters.ChapterService;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -15,32 +15,27 @@ import java.util.List;
 
 @Service
 public class DemandForecastService {
-    private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
-
     private final DatabaseClient db;
     private final BulkPledgeService bulkService;
     private final HeatBandService heatBand;
-    private final FtfProperties props;
 
-    public DemandForecastService(DatabaseClient db, BulkPledgeService bulkService,
-                                 HeatBandService heatBand, FtfProperties props) {
+    public DemandForecastService(DatabaseClient db, BulkPledgeService bulkService, HeatBandService heatBand) {
         this.db = db;
         this.bulkService = bulkService;
         this.heatBand = heatBand;
-        this.props = props;
     }
 
-    // F11 — projected_need = headcount × per_capita_rate × hours − confirmed supply − open needs
-    public Mono<ForecastResponse> forecast() {
-        return heatBand.currentBand().flatMap(band -> {
-            int headcount = props.headcountEstimate();
-            int hour = ZonedDateTime.now(IST).getHour();
+    public Mono<ForecastResponse> forecast(ChapterService.Chapter chapter) {
+        ZoneId tz = ZoneId.of(chapter.timezone());
+        return heatBand.currentBand(chapter).flatMap(band -> {
+            int headcount = chapter.headcountEstimate();
+            int hour = ZonedDateTime.now(tz).getHour();
             List<ShortfallDto> shortfalls = new ArrayList<>();
 
             return Mono.when(
-                    addShortfall(shortfalls, "WATER", "LITRES", headcount, band, hour, waterRate(band)),
-                    addShortfall(shortfalls, "ORS_ELECTROLYTE", "PACKETS", headcount, band, hour, orsRate(band)),
-                    addShortfall(shortfalls, "FOOD_COOKED", "MEALS", headcount, band, hour, 0.33)
+                    addShortfall(shortfalls, chapter.id(), "WATER", "LITRES", headcount, band, hour, waterRate(band)),
+                    addShortfall(shortfalls, chapter.id(), "ORS_ELECTROLYTE", "PACKETS", headcount, band, hour, orsRate(band)),
+                    addShortfall(shortfalls, chapter.id(), "FOOD_COOKED", "MEALS", headcount, band, hour, 0.33)
             ).thenReturn(new ForecastResponse(band, headcount, shortfalls, timeWindow(hour)));
         });
     }
@@ -53,13 +48,13 @@ public class DemandForecastService {
         return "RED".equals(band) ? 0.08 : 0.03;
     }
 
-    private Mono<Void> addShortfall(List<ShortfallDto> out, String category, String unit,
+    private Mono<Void> addShortfall(List<ShortfallDto> out, short chapterId, String category, String unit,
                                     int headcount, String band, int hour, double perCapitaPerHour) {
         BigDecimal projected = BigDecimal.valueOf(headcount * perCapitaPerHour * 6)
                 .setScale(0, RoundingMode.CEILING);
 
-        return bulkService.approvedSupplyFor(category, hour)
-                .zipWith(openNeeds(category))
+        return bulkService.approvedSupplyFor(chapterId, category, hour)
+                .zipWith(openNeeds(chapterId, category))
                 .doOnNext(tuple -> {
                     BigDecimal bulk = tuple.getT1();
                     BigDecimal open = tuple.getT2();
@@ -71,19 +66,20 @@ public class DemandForecastService {
                 .then();
     }
 
-    private Mono<BigDecimal> openNeeds(String category) {
+    private Mono<BigDecimal> openNeeds(short chapterId, String category) {
         return db.sql("""
                 SELECT COALESCE(SUM(GREATEST(quantity - pledged, 0)), 0) as open
-                FROM needs WHERE category = :cat::need_category
+                FROM needs WHERE chapter_id = :chapterId AND category = :cat::need_category
                   AND state IN ('OPEN','CLAIMED') AND hidden_pending_review = false
                 """)
+                .bind("chapterId", chapterId)
                 .bind("cat", category)
                 .map((row, meta) -> row.get("open", BigDecimal.class))
                 .one();
     }
 
     private String timeWindow(int hour) {
-        return String.format("%02d:00–%02d:00 IST", hour, (hour + 6) % 24);
+        return String.format("%02d:00–%02d:00", hour, (hour + 6) % 24);
     }
 
     public record ForecastResponse(String heatBand, int headcountEstimate,
