@@ -18,3 +18,8 @@ frontend/node_modules/
 
 # Logs
 *.log
+
+# Generated mirror snapshots
+mirror/
+mirror/
+backend/mirror/
