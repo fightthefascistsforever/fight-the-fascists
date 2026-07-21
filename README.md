@@ -1,1 +1,1 @@
-# fight-the-fascists
+# Fight the Fascists
