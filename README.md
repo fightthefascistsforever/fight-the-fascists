@@ -61,7 +61,7 @@ make test
 - **Claims (F2)** — partial claims, handoff codes, race-safe pledging, auto-lapse
 - **Abuse layer** — proof-of-work, rate limiting, idempotency keys
 - **SSE** — realtime board updates
-- **Lite mode** — zero-JS fallback at `/api/v1/lite`
+- **Lite mode** — zero-JS fallback at `/api/v1/chapters/{slug}/lite`
 - **i18n** — Hindi + English UI toggle
 - **PWA** — offline shell caching, installable
 

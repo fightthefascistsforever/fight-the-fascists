@@ -24,7 +24,7 @@ async function title(page, text, ms = 2200) {
         'position:fixed;inset:0;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;z-index:99999;pointer-events:none;'
       document.body.appendChild(el)
     }
-    el.innerHTML = `<div style="color:#5eead4;font-family:system-ui,sans-serif;text-align:center;padding:2rem;max-width:90%"><p style="font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;margin-bottom:0.75rem">Fight the Fascists</p><h1 style="font-size:1.6rem;font-weight:700;color:white;line-height:1.35;white-space:pre-line">${t}</h1></div>`
+    el.innerHTML = `<div style="color:#1e4a7a;font-family:system-ui,sans-serif;text-align:center;padding:2rem;max-width:90%"><p style="font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;color:#94a3b8;margin-bottom:0.75rem">Fight the Fascists</p><h1 style="font-size:1.6rem;font-weight:700;color:white;line-height:1.35;white-space:pre-line">${t}</h1></div>`
     el.style.display = 'flex'
   }, text)
   await page.waitForTimeout(ms)
@@ -77,6 +77,8 @@ try {
     await wait(page, 2000)
   })
 
+  const demoNote = 'FTF demo dry snacks Zone C'
+
   await section(page, 'post-need', async () => {
     await title(page, '3 · Post a Need (F1)\nAnonymous device + proof-of-work')
     await page.click('a:has-text("Post a Need")')
@@ -86,23 +88,27 @@ try {
     await page.locator('select').nth(1).selectOption('FOOD_DRY')
     await page.fill('input[type=number]', '30')
     await page.getByRole('button', { name: 'Within 6h' }).click()
-    await page.fill('textarea', 'Demo: dry snacks for Zone C volunteers')
+    await page.fill('textarea', demoNote)
     await page.getByRole('button', { name: 'Submit' }).click()
-    await page.waitForURL('**/delhi-2026', { timeout: 120000 })
-    await wait(page, 2000)
+    await page.waitForURL('**/delhi-2026', { timeout: 180000 })
+    await page.waitForSelector(`text=${demoNote}`, { timeout: 60000 })
+    await wait(page, 1500)
   })
 
   await section(page, 'claim', async () => {
     await title(page, '4 · Claim / Help (F2)\nPartial pledges with handoff codes')
-    const helpLink = page.locator('article').filter({ hasText: 'Dry food' }).getByRole('link', { name: 'Help' }).first()
-    await helpLink.click({ timeout: 10000 })
+    let card = page.locator('article').filter({ hasText: demoNote })
+    if ((await card.count()) === 0) {
+      card = page.locator('article').filter({ hasText: 'Dry food' }).filter({ hasText: '0 /' }).first()
+    }
+    await card.getByRole('link', { name: 'Help' }).click({ timeout: 15000 })
     await page.waitForURL('**/claim/**')
     await wait(page, 1000)
     await page.getByRole('button', { name: 'Confirm' }).click()
     await wait(page, 800)
     await page.getByRole('button', { name: '1h' }).click()
     await page.getByRole('button', { name: 'Help' }).click()
-    await page.waitForSelector('text=Your handoff code', { timeout: 120000 })
+    await page.waitForSelector('text=Your handoff code', { timeout: 180000 })
     await wait(page, 2500)
     await page.getByRole('button', { name: 'Need Board' }).click()
     await wait(page, 1500)
