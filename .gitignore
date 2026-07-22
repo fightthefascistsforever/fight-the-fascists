@@ -23,3 +23,8 @@ frontend/node_modules/
 mirror/
 mirror/
 backend/mirror/
+
+# Demo recordings
+fight-the-fascists-demo.*
+demo/node_modules/
+demo/demo-raw/
