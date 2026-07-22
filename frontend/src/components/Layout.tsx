@@ -31,33 +31,33 @@ export default function Layout() {
   ]
 
   const navClass = (to: string) =>
-    `flex-1 text-center py-2 rounded-lg text-xs font-medium min-h-10 flex items-center justify-center ${
-      loc.pathname === to ? 'bg-teal-700 text-white' : 'bg-slate-800 text-slate-300'
+    `flex-1 text-center py-2 rounded-lg text-xs font-medium min-h-10 flex items-center justify-center transition-colors ${
+      loc.pathname === to ? 'ftf-nav-active' : 'ftf-nav-inactive'
     }`
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/95 backdrop-blur px-4 py-3">
+    <div className="ftf-page">
+      <header className="ftf-header px-4 py-3">
         <div className="mx-auto max-w-lg flex items-center justify-between gap-2">
           <div>
-            <Link to="/" className="text-xs text-slate-500 hover:text-slate-300">{t.appName}</Link>
-            <h1 className="text-lg font-bold leading-tight">{chapterName}</h1>
+            <Link to="/" className="text-xs text-slate-500 hover:text-blue-800 transition-colors">{t.appName}</Link>
+            <h1 className="text-lg font-bold leading-tight text-slate-900">{chapterName}</h1>
             {chapter && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 {locale === 'hi' && chapter.locationLabelHi ? chapter.locationLabelHi : chapter.locationLabelEn}
               </p>
             )}
           </div>
           <button
             onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
-            className="min-h-11 min-w-11 px-2 text-sm border border-slate-700 rounded-lg"
+            className="min-h-11 min-w-11 px-2 text-sm border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-50"
             aria-label="Toggle language"
           >
             {locale === 'en' ? 'हि' : 'EN'}
           </button>
         </div>
         {handle && (
-          <p className="mx-auto max-w-lg mt-1 text-xs text-teal-400 px-4">{handle}</p>
+          <p className="mx-auto max-w-lg mt-1 text-xs text-blue-700 font-medium px-4">{handle}</p>
         )}
         <nav className="mx-auto max-w-lg flex gap-1 mt-2 px-2">
           {primaryNav.map(({ to, key }) => (
@@ -74,8 +74,8 @@ export default function Layout() {
       <main className="mx-auto max-w-lg px-4 py-4 pb-8">
         <Outlet />
       </main>
-      <footer className="text-center text-xs text-slate-600 pb-4">
-        <a href={`/api/v1/chapters/${chapterSlug}/lite`} className="underline">{t.lite}</a>
+      <footer className="text-center text-xs text-slate-400 pb-4">
+        <a href={`/api/v1/chapters/${chapterSlug}/lite`} className="underline hover:text-blue-800">{t.lite}</a>
       </footer>
     </div>
   )

@@ -21,29 +21,29 @@ export default function MyPage() {
   return (
     <div className="space-y-4">
       {handle ? (
-        <div className="bg-slate-900 rounded-xl p-4 border border-slate-700">
-          <p className="text-sm text-slate-400">Your handle</p>
-          <p className="text-xl font-bold text-teal-400">{handle}</p>
+        <div className="ftf-card p-4">
+          <p className="text-sm text-slate-500">Your handle</p>
+          <p className="text-xl font-bold text-blue-800">{handle}</p>
         </div>
       ) : (
-        <p className="text-slate-400 text-center">No device registered yet.</p>
+        <p className="text-slate-500 text-center">No device registered yet.</p>
       )}
 
       {!deviceSecret && (
         <button onClick={handleRegister}
-          className="w-full min-h-12 bg-teal-600 rounded-xl font-bold">
+          className="w-full min-h-12 ftf-btn-primary rounded-xl font-bold">
           Register device
         </button>
       )}
 
       {deviceSecret && (
         <button onClick={handleForget}
-          className="w-full min-h-11 border border-red-800 text-red-400 rounded-xl">
+          className="w-full min-h-11 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 rounded-xl">
           {t.forgetDevice}
         </button>
       )}
 
-      <div className="bg-red-950/50 border border-red-800 rounded-xl p-4 text-sm text-red-200">
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
         {t.emergency}
       </div>
     </div>

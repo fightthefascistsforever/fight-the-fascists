@@ -15,17 +15,17 @@ export default function HeatBanner() {
   if (!heat) return null
 
   const colors = {
-    GREEN: 'bg-green-950 border-green-700 text-green-100',
-    AMBER: 'bg-amber-950 border-amber-600 text-amber-100',
-    RED: 'bg-red-950 border-red-600 text-red-100',
-  }[heat.band as 'GREEN' | 'AMBER' | 'RED'] || 'bg-slate-900 border-slate-700'
+    GREEN: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    AMBER: 'bg-amber-50 border-amber-200 text-amber-900',
+    RED: 'bg-red-50 border-red-200 text-red-900',
+  }[heat.band as 'GREEN' | 'AMBER' | 'RED'] || 'bg-slate-50 border-slate-200 text-slate-800'
 
   return (
     <div className={`border rounded-xl p-3 text-sm ${colors}`}>
       <div className="flex justify-between items-center">
         <span className="font-bold">{heat.band} — {heat.temperatureC.toFixed(0)}°C</span>
       </div>
-      <p className="mt-1">{locale === 'hi' ? heat.messageHi : heat.messageEn}</p>
+      <p className="mt-1 opacity-90">{locale === 'hi' ? heat.messageHi : heat.messageEn}</p>
     </div>
   )
 }

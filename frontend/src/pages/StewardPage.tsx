@@ -63,19 +63,19 @@ export default function StewardPage() {
   if (!stewardToken) {
     return (
       <form onSubmit={handleLogin} className="space-y-4 max-w-sm mx-auto">
-        <h2 className="text-lg font-bold text-center">{t.stewardLogin}</h2>
+        <h2 className="text-lg font-bold text-center text-slate-900">{t.stewardLogin}</h2>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">{t.passphrase}</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">{t.passphrase}</label>
           <input type="password" value={passphrase} onChange={e => setPassphrase(e.target.value)}
-            className="w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg" required />
+            className="ftf-input" required />
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">{t.totpCode}</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">{t.totpCode}</label>
           <input type="text" inputMode="numeric" value={totpCode} onChange={e => setTotpCode(e.target.value)}
-            className="w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg" required />
+            className="ftf-input" required />
         </div>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-        <button type="submit" className="w-full min-h-12 bg-teal-600 rounded-xl font-bold">{t.login}</button>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button type="submit" className="w-full min-h-12 ftf-btn-primary rounded-xl font-bold">{t.login}</button>
       </form>
     )
   }
@@ -83,25 +83,25 @@ export default function StewardPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-teal-400">Tier: {stewardTier}</span>
-        <button onClick={clearStewardToken} className="text-sm text-slate-400 underline">{t.logout}</button>
+        <span className="text-sm text-blue-800 font-medium">Tier: {stewardTier}</span>
+        <button onClick={clearStewardToken} className="text-sm text-slate-500 underline hover:text-slate-700">{t.logout}</button>
       </div>
 
       <section>
-        <h2 className="font-bold mb-3">{t.moderationQueue}</h2>
+        <h2 className="font-bold mb-3 text-slate-900">{t.moderationQueue}</h2>
         {!queue?.length ? (
-          <p className="text-slate-400 text-sm">Queue empty.</p>
+          <p className="text-slate-500 text-sm">Queue empty.</p>
         ) : (
           <div className="space-y-2">
             {queue.map((item: import('../api').QueueItem) => (
-              <div key={item.id} className="border border-slate-700 rounded-lg p-3 bg-slate-900">
-                <p className="text-sm"><strong>{item.zoneCode}</strong> — {item.category}</p>
-                {item.notePreview && <p className="text-xs text-slate-400 mt-1">{item.notePreview}</p>}
+              <div key={item.id} className="ftf-card p-3">
+                <p className="text-sm text-slate-800"><strong>{item.zoneCode}</strong> — {item.category}</p>
+                {item.notePreview && <p className="text-xs text-slate-500 mt-1">{item.notePreview}</p>}
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => handleApprove(item.id)}
-                    className="flex-1 min-h-10 bg-teal-700 rounded-lg text-sm">{t.approve}</button>
+                    className="flex-1 min-h-10 ftf-btn-primary rounded-lg text-sm">{t.approve}</button>
                   <button onClick={() => handleRemove(item.id)}
-                    className="flex-1 min-h-10 border border-red-800 text-red-400 rounded-lg text-sm">{t.remove}</button>
+                    className="flex-1 min-h-10 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 rounded-lg text-sm">{t.remove}</button>
                 </div>
               </div>
             ))}
@@ -110,17 +110,17 @@ export default function StewardPage() {
       </section>
 
       <section>
-        <h2 className="font-bold mb-3">{t.postAnnouncement}</h2>
+        <h2 className="font-bold mb-3 text-slate-900">{t.postAnnouncement}</h2>
         <form onSubmit={handlePostAnnouncement} className="space-y-3">
           <textarea value={annBody} onChange={e => setAnnBody(e.target.value)} required maxLength={500}
-            className="w-full min-h-24 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg" />
+            className="ftf-input min-h-24 py-2" />
           <select value={annSource} onChange={e => setAnnSource(e.target.value)}
-            className="w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg">
+            className="ftf-input">
             {Object.entries(t.sources).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
-          <button type="submit" className="w-full min-h-11 bg-teal-600 rounded-lg font-medium">{t.submit}</button>
+          <button type="submit" className="w-full min-h-11 ftf-btn-primary rounded-lg font-medium">{t.submit}</button>
         </form>
       </section>
     </div>

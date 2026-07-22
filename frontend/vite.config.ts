@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Fight the Fascists',
         short_name: 'FTF',
         description: 'Protest mutual-aid coordination',
-        theme_color: '#1a1a2e',
-        background_color: '#1a1a2e',
+        theme_color: '#1e4a7a',
+        background_color: '#f4f6f9',
         display: 'standalone',
         start_url: '/',
         icons: [

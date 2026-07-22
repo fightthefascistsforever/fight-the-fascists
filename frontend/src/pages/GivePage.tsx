@@ -58,68 +58,66 @@ export default function GivePage() {
     }
   }
 
-  const selectClass = 'w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg'
-
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-400">{t.giveDesc}</p>
+      <p className="text-sm text-slate-600">{t.giveDesc}</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-slate-400 mb-1">{t.orgName}</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">{t.orgName}</label>
           <input value={orgName} onChange={e => setOrgName(e.target.value)} required
-            className={selectClass} placeholder="Langar name, restaurant, NGO…" />
+            className="ftf-input" placeholder="Langar name, restaurant, NGO…" />
         </div>
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm text-slate-400 mb-1">{t.category}</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className={selectClass}>
+            <label className="block text-sm text-slate-600 mb-1 font-medium">{t.category}</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="ftf-input">
               {CATEGORIES.map(c => (
                 <option key={c} value={c}>{t.categories[c as keyof typeof t.categories] || c}</option>
               ))}
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-sm text-slate-400 mb-1">{t.quantity}</label>
+            <label className="block text-sm text-slate-600 mb-1 font-medium">{t.quantity}</label>
             <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)}
-              className={selectClass} min="1" required />
+              className="ftf-input" min="1" required />
           </div>
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">{t.slot}</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">{t.slot}</label>
           <div className="flex gap-2 flex-wrap">
             {SLOTS.map(s => (
               <button key={s.hour} type="button"
                 onClick={() => { setSlotHour(s.hour); setSlotLabel(s.label) }}
-                className={`min-h-10 px-3 rounded-lg text-sm ${slotHour === s.hour ? 'bg-teal-700' : 'bg-slate-800 border border-slate-700'}`}>
+                className={`min-h-10 px-3 rounded-lg text-sm transition-colors ${slotHour === s.hour ? 'bg-blue-800 text-white' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
                 {s.label}
               </button>
             ))}
           </div>
         </div>
         {category === 'FOOD_COOKED' && (
-          <label className="flex items-start gap-2 text-sm text-slate-300">
+          <label className="flex items-start gap-2 text-sm text-slate-700">
             <input type="checkbox" checked={foodSafetyAck} onChange={e => setFoodSafetyAck(e.target.checked)}
               className="mt-1" />
             {t.foodSafetyAck}
           </label>
         )}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
         <button type="submit" disabled={submitting || (category === 'FOOD_COOKED' && !foodSafetyAck)}
-          className="w-full min-h-12 bg-teal-600 rounded-xl font-bold disabled:opacity-50">
+          className="w-full min-h-12 ftf-btn-primary rounded-xl font-bold disabled:opacity-50">
           {submitting ? t.loading : t.submitPledge}
         </button>
       </form>
 
       {pledges?.length > 0 && (
         <section>
-          <h2 className="font-bold mb-3">{t.activePledges}</h2>
+          <h2 className="font-bold mb-3 text-slate-900">{t.activePledges}</h2>
           <div className="space-y-2">
             {pledges.map((p: import('../api').BulkPledge) => (
-              <div key={p.id} className="border border-slate-700 rounded-lg p-3 bg-slate-900 text-sm">
-                <p className="font-medium">{p.orgName}</p>
-                <p className="text-slate-400">{p.quantity} {p.unit.toLowerCase()} — {p.slotLabel}</p>
-                {!p.approved && <span className="text-xs text-amber-400">{t.pendingApproval}</span>}
+              <div key={p.id} className="ftf-card p-3 text-sm">
+                <p className="font-medium text-slate-900">{p.orgName}</p>
+                <p className="text-slate-500">{p.quantity} {p.unit.toLowerCase()} — {p.slotLabel}</p>
+                {!p.approved && <span className="text-xs text-amber-700">{t.pendingApproval}</span>}
               </div>
             ))}
           </div>

@@ -1,13 +1,69 @@
 @import "tailwindcss";
 
+@theme {
+  --color-ftf-bg: #f4f6f9;
+  --color-ftf-surface: #ffffff;
+  --color-ftf-border: #e2e8f0;
+  --color-ftf-text: #1e293b;
+  --color-ftf-muted: #64748b;
+  --color-ftf-primary: #1e4a7a;
+  --color-ftf-primary-hover: #163a61;
+  --color-ftf-accent: #2563eb;
+}
+
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-color: var(--color-ftf-bg);
+  color: var(--color-ftf-text);
 }
 
 button, a, input, select, textarea {
   touch-action: manipulation;
+}
+
+@layer components {
+  .ftf-page {
+    @apply min-h-screen bg-[#f4f6f9] text-slate-800;
+  }
+
+  .ftf-header {
+    @apply sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-sm shadow-sm;
+  }
+
+  .ftf-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+  }
+
+  .ftf-input {
+    @apply w-full min-h-11 px-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800
+           placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-800/25 focus:border-blue-700;
+  }
+
+  .ftf-btn-primary {
+    @apply bg-blue-800 hover:bg-blue-900 text-white font-medium rounded-lg transition-colors;
+  }
+
+  .ftf-btn-secondary {
+    @apply border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-lg transition-colors;
+  }
+
+  .ftf-nav-active {
+    @apply bg-blue-800 text-white;
+  }
+
+  .ftf-nav-inactive {
+    @apply bg-slate-100 text-slate-600 hover:bg-slate-200;
+  }
+
+  .ftf-accent-text {
+    @apply text-blue-800 font-semibold;
+  }
+
+  .ftf-muted {
+    @apply text-slate-500;
+  }
 }

@@ -15,33 +15,33 @@ export default function AidPage() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-red-950 border-2 border-red-600 rounded-xl p-4 text-red-100 text-sm font-medium">
+      <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 text-red-800 text-sm font-medium">
         {t.emergency}
       </div>
-      <p className="text-xs text-slate-400 bg-slate-900 rounded-lg p-3">{t.fastNotice}</p>
+      <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">{t.fastNotice}</p>
 
       {isLoading ? (
-        <p className="text-center py-8 text-slate-400">{t.loading}</p>
+        <p className="text-center py-8 text-slate-500">{t.loading}</p>
       ) : (
         <div className="space-y-3">
           {points?.map((p: import('../api').AidPoint) => (
-            <article key={p.id} className="border border-slate-700 rounded-xl p-4 bg-slate-900">
+            <article key={p.id} className="ftf-card p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-teal-400 font-bold">{p.zoneCode}</span>
-                  <p className="font-medium mt-1">{p.name}</p>
+                  <span className="ftf-accent-text">{p.zoneCode}</span>
+                  <p className="font-medium mt-1 text-slate-800">{p.name}</p>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded font-medium ${
-                  p.status === 'OPEN' ? 'bg-green-900 text-green-200' :
-                  p.status === 'AT_CAPACITY' ? 'bg-amber-900 text-amber-200' :
-                  p.status === 'CLOSED' ? 'bg-red-900 text-red-200' : 'bg-slate-800 text-slate-400'
+                  p.status === 'OPEN' ? 'bg-emerald-100 text-emerald-800' :
+                  p.status === 'AT_CAPACITY' ? 'bg-amber-100 text-amber-900' :
+                  p.status === 'CLOSED' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-600'
                 }`}>
                   {t.aidStatus[p.status as keyof typeof t.aidStatus] || p.status}
                 </span>
               </div>
-              {p.hoursNote && <p className="text-sm text-slate-400 mt-2">{p.hoursNote}</p>}
+              {p.hoursNote && <p className="text-sm text-slate-500 mt-2">{p.hoursNote}</p>}
               {p.cannotHandle && (
-                <p className="text-xs text-amber-400 mt-1">Cannot handle: {p.cannotHandle}</p>
+                <p className="text-xs text-amber-700 mt-1">Cannot handle: {p.cannotHandle}</p>
               )}
             </article>
           ))}

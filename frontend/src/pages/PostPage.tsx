@@ -56,12 +56,12 @@ export default function PostPage() {
     }
   }
 
-  const selectClass = 'w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg text-base'
+  const selectClass = 'ftf-input'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm text-slate-400 mb-1">{t.zone}</label>
+        <label className="block text-sm text-slate-600 mb-1 font-medium">{t.zone}</label>
         <select value={zoneId} onChange={e => setZoneId(Number(e.target.value))} className={selectClass}>
           {zones?.map((z: { id: number; code: string; nameEn: string; nameHi: string }) => (
             <option key={z.id} value={z.id}>
@@ -72,7 +72,7 @@ export default function PostPage() {
       </div>
 
       <div>
-        <label className="block text-sm text-slate-400 mb-1">{t.category}</label>
+        <label className="block text-sm text-slate-600 mb-1 font-medium">{t.category}</label>
         <select value={category} onChange={e => setCategory(e.target.value)} className={selectClass}>
           {CATEGORIES.map(c => (
             <option key={c} value={c}>{t.categories[c as keyof typeof t.categories] || c}</option>
@@ -82,12 +82,12 @@ export default function PostPage() {
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="block text-sm text-slate-400 mb-1">{t.quantity}</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">{t.quantity}</label>
           <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)}
             className={selectClass} min="1" required />
         </div>
         <div className="flex-1">
-          <label className="block text-sm text-slate-400 mb-1">Unit</label>
+          <label className="block text-sm text-slate-600 mb-1 font-medium">Unit</label>
           <select value={unit} onChange={e => setUnit(e.target.value)} className={selectClass}>
             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
@@ -95,12 +95,12 @@ export default function PostPage() {
       </div>
 
       <div>
-        <label className="block text-sm text-slate-400 mb-1">{t.urgency}</label>
+        <label className="block text-sm text-slate-600 mb-1 font-medium">{t.urgency}</label>
         <div className="flex gap-2">
           {URGENCIES.map(u => (
             <button key={u} type="button" onClick={() => setUrgency(u)}
-              className={`flex-1 min-h-11 rounded-lg text-sm font-medium ${
-                urgency === u ? 'bg-teal-700' : 'bg-slate-800 border border-slate-700'
+              className={`flex-1 min-h-11 rounded-lg text-sm font-medium transition-colors ${
+                urgency === u ? 'bg-blue-800 text-white' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
               }`}>
               {t.urgencies[u as keyof typeof t.urgencies]}
             </button>
@@ -109,15 +109,15 @@ export default function PostPage() {
       </div>
 
       <div>
-        <label className="block text-sm text-slate-400 mb-1">{t.note}</label>
+        <label className="block text-sm text-slate-600 mb-1 font-medium">{t.note}</label>
         <textarea value={note} onChange={e => setNote(e.target.value)} maxLength={200}
           className={`${selectClass} min-h-20`} />
       </div>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <button type="submit" disabled={submitting}
-        className="w-full min-h-12 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 rounded-xl font-bold text-lg">
+        className="w-full min-h-12 ftf-btn-primary disabled:opacity-50 rounded-xl font-bold text-lg">
         {submitting ? t.loading : t.submit}
       </button>
     </form>

@@ -32,15 +32,15 @@ export default function ClaimPage() {
   })
   const need = needs?.find((n: { id: string }) => n.id === needId)
 
-  if (!need) return <p className="text-center py-8">{t.loading}</p>
+  if (!need) return <p className="text-center py-8 text-slate-500">{t.loading}</p>
 
   if (handoffCode) {
     return (
       <div className="text-center py-8 space-y-4">
-        <p className="text-slate-400">{t.handoffCode}</p>
-        <p className="text-5xl font-bold tracking-widest text-teal-400">{handoffCode}</p>
-        <p className="text-sm text-slate-400">{t.showAtDrop}</p>
-        <button onClick={() => navigate(`/${chapterSlug}`)} className="min-h-11 px-6 bg-slate-800 rounded-lg">
+        <p className="text-slate-500">{t.handoffCode}</p>
+        <p className="text-5xl font-bold tracking-widest text-blue-800">{handoffCode}</p>
+        <p className="text-sm text-slate-500">{t.showAtDrop}</p>
+        <button onClick={() => navigate(`/${chapterSlug}`)} className="min-h-11 px-6 ftf-btn-secondary">
           {t.board}
         </button>
       </div>
@@ -74,51 +74,51 @@ export default function ClaimPage() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-slate-900 rounded-xl p-4 border border-slate-700">
-        <p className="text-teal-400 font-bold text-xl">{need.zoneCode}</p>
-        <p className="text-slate-300 mt-1">
+      <div className="ftf-card p-4">
+        <p className="ftf-accent-text text-xl">{need.zoneCode}</p>
+        <p className="text-slate-600 mt-1">
           {need.pledged} / {need.quantity} {need.unit.toLowerCase()} {t.pledged}
         </p>
       </div>
 
       {!confirmed ? (
         <>
-          <p className="text-slate-300">
+          <p className="text-slate-700">
             You're pledging supplies for <strong>{need.zoneCode}</strong>.
             Zone {need.zoneCode} is relying on this.
           </p>
           <button onClick={() => setConfirmed(true)}
-            className="w-full min-h-12 bg-teal-600 rounded-xl font-bold">
+            className="w-full min-h-12 ftf-btn-primary rounded-xl font-bold">
             {t.confirm}
           </button>
-          <button onClick={() => navigate(`/${chapterSlug}`)} className="w-full min-h-11 text-slate-400">
+          <button onClick={() => navigate(`/${chapterSlug}`)} className="w-full min-h-11 text-slate-500 hover:text-slate-700">
             {t.cancel}
           </button>
         </>
       ) : (
         <>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">{t.quantity}</label>
+            <label className="block text-sm text-slate-600 mb-1 font-medium">{t.quantity}</label>
             <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)}
               placeholder={String(remaining)}
-              className="w-full min-h-11 px-3 bg-slate-800 border border-slate-700 rounded-lg" />
+              className="ftf-input" />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">ETA</label>
+            <label className="block text-sm text-slate-600 mb-1 font-medium">ETA</label>
             <div className="flex gap-2 flex-wrap">
               {ETA_OPTIONS.map(o => (
                 <button key={o.minutes} type="button" onClick={() => setEtaMinutes(o.minutes)}
-                  className={`min-h-11 px-4 rounded-lg text-sm ${
-                    etaMinutes === o.minutes ? 'bg-teal-700' : 'bg-slate-800 border border-slate-700'
+                  className={`min-h-11 px-4 rounded-lg text-sm transition-colors ${
+                    etaMinutes === o.minutes ? 'bg-blue-800 text-white' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                   }`}>
                   {o.label}
                 </button>
               ))}
             </div>
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
           <button onClick={handleClaim} disabled={submitting}
-            className="w-full min-h-12 bg-teal-600 rounded-xl font-bold disabled:opacity-50">
+            className="w-full min-h-12 ftf-btn-primary rounded-xl font-bold disabled:opacity-50">
             {submitting ? t.loading : t.claim}
           </button>
         </>
