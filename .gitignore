@@ -1,0 +1,30 @@
+# Build
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+
+# Generated mirror snapshots
+mirror/
+mirror/
+backend/mirror/
+
+# Demo recordings
+fight-the-fascists-demo.*
+demo/node_modules/
+demo/demo-raw/

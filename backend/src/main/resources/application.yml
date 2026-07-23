@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: fight-the-fascists
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/fightthefascists
+    username: ftf
+    password: ftf
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fightthefascists
+    username: ftf
+    password: ftf
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+
+ftf:
+  device-pepper: dev-pepper-change-in-production-32b
+  encryption-key: dev-encryption-key-32bytes-long!!
+  pow-secret: dev-pow-secret-change-me
+  pow-difficulty: 12
+  cors-allowed-origin: http://localhost:5173
+  jwt-secret: dev-jwt-secret-change-in-production-min-32-chars
+  admin:
+    passphrase: steward-dev-pass
+    totp-secret: JBSWY3DPEHPK3PXP
+  headcount-estimate: 800
+  site-lat: 28.627
+  site-lon: 77.216
+  mirror-path: mirror
+  public-url: http://localhost:5173
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    com.fightthefascists: INFO

@@ -1,0 +1,21 @@
+This project coordinates humanitarian supply at a protest site. Privacy and abuse
+resistance are hard requirements, not features.
+
+NEVER:
+- call navigator.geolocation or store any coordinate
+- add fields for name, phone, email, age, gender, health info, or photos of people
+- add direct messaging between users
+- add person-finding or "missing person" features
+- add third-party analytics, fonts, maps, or auth providers
+- log user content or full IP addresses
+- write raw SQL string concatenation
+- ship a mutating endpoint without idempotency key + PoW + rate limit
+- render user text in the /lite SSR path without explicit HTML escaping
+
+ALWAYS:
+- reference the PRD edge case ID (e.g. // F2.E5) in code that implements one
+- write the failing test before the implementation
+- return an actionable alternative with every 4xx, never a bare error
+- set a TTL on every row you create
+- keep the JS bundle under 100KB; justify any new dependency in the PR description
+- support Hindi and English for every user-visible string
